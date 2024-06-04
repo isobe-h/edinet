@@ -123,17 +123,8 @@ def main(secCode):
         try:
             extract_zip(zip_file)
             df = process_csv_files()[0]
-            # dfから要素ID、コンテキストID,ユニットID列を削除
-            # 相対年度の列が、'当期'　以外の行は削除
-            df = df.drop(
-                columns=["要素ID", "コンテキストID", "ユニットID", "単位", "期間・時点"]
-            )
-            # 相対年度の列が、
-            df = df[df["相対年度"] == "当期"]
-            # df = df.drop(columns=["相対年度"])
-            df = df[df["連結・個別"] != "個別"]
-            df = df.drop(columns=["連結・個別"])
-            df.to_csv(f"csv/{doc_id}.csv", index=False)
+
+            df.to_csv(f"csv/{doc_id}_{annual_securities_reports[0]["filerName"]}.csv", index=False)
             clean_up_directory()
             print(f"docID: {doc_id} のファイルが正常にダウンロードされました。")
             print("wait 2 seconds")
