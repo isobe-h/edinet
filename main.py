@@ -1,5 +1,3 @@
-import glob
-import io
 import os
 import shutil
 import time
@@ -9,10 +7,11 @@ from datetime import datetime, timedelta
 import pandas as pd
 import requests
 
+from file_utils import clean_up_directory, extract_zip, csv_to_df
+
 API_KEY = os.getenv("KEY")
 BASE_URL = "https://disclosure.edinet-fsa.go.jp/api/v2/documents"
 DOC_LIST_URL = BASE_URL + ".json"
-DOC_PATH = "csv"
 
 
 def fetch_annual_report(doc_id):
@@ -24,36 +23,12 @@ def fetch_annual_report(doc_id):
     Returns:
         bytes: ダウンロードしたファイルのバイナリデータ
     """
-    doc_parameter = {'type': 5, 'Subscription-Key': API_KEY }
+    doc_parameter = {"type": 5, "Subscription-Key": API_KEY}
     response = requests.get(f"{BASE_URL}/{doc_id}", params=doc_parameter)
     if response.status_code != 200:
         print(f"docID: {doc_id} のファイルのダウンロードに失敗しました。")
         return None
     return response.content
-
-
-def extract_zip(zip_data):
-    """ZIPファイルを指定されたディレクトリに解凍する
-    Copy codeArgs:
-        zip_data (bytes): ZIPファイルのバイナリデータ
-    """
-    with zipfile.ZipFile(io.BytesIO(zip_data)) as zip_ref:
-        zip_ref.extractall(DOC_PATH)
-
-
-def process_csv_files():
-    pattern = "csv/XBRL_TO_CSV/jpcrp*.csv"
-    dataframes = []
-    for file_path in glob.glob(pattern):
-        df = pd.read_csv(file_path, encoding="utf-16", sep=None, engine="python")
-        dataframes.append(df)
-    return dataframes
-
-
-def clean_up_directory():
-    # jpcrp*.csvファイルを削除
-    for file_path in glob.glob("csv/XBRL_TO_CSV/jpaud*.csv"):
-        os.remove(file_path)
 
 
 def fetch_annual_securities_reports(start_date, end_date):
@@ -72,10 +47,10 @@ def fetch_annual_securities_reports(start_date, end_date):
         if "results" in result:
             df = pd.DataFrame(result["results"])
             for _, row in df.iterrows():
-                description = row.get("docDescription")     # 書類の説明
-                docId = row.get("docID")    # 書類管理番号
-                secCode = row.get("secCode")    # 提出者証券コード
-                filerName = row.get("filerName")    # 提出者名
+                description = row.get("docDescription")  # 書類の説明
+                docId = row.get("docID")  # 書類管理番号
+                secCode = row.get("secCode")  # 提出者証券コード
+                filerName = row.get("filerName")  # 提出者名
                 if description is None or docId is None or secCode is None:
                     continue
                 if "訂正有価証券報告書" in description or "受益証券" in description:
@@ -103,10 +78,17 @@ def main(secCode):
     annual_securities_reports = fetch_annual_securities_reports(start_date, end_date)
 
     if not annual_securities_reports:
-        print(start_date.strftime("%Y-%m-%d"), "から", end_date.strftime("%Y-%m-%d"), "の間に有価証券報告書はありません。")
+        print(
+            start_date.strftime("%Y-%m-%d"),
+            "から",
+            end_date.strftime("%Y-%m-%d"),
+            "の間に有価証券報告書はありません。",
+        )
         return
     # secCodeに一致する有価証券報告書のみを抽出
-    annual_securities_reports = [report for report in annual_securities_reports if report["secCode"] == secCode]
+    annual_securities_reports = [
+        report for report in annual_securities_reports if report["secCode"] == secCode
+    ]
     if not annual_securities_reports:
         print(f"{secCode} に一致する有価証券報告書はありません。")
         return
@@ -122,9 +104,12 @@ def main(secCode):
     if zip_file is not None:
         try:
             extract_zip(zip_file)
-            df = process_csv_files()[0]
+            df = csv_to_df()[0]
 
-            df.to_csv(f"csv/{doc_id}_{annual_securities_reports[0]["filerName"]}.csv", index=False)
+            df.to_csv(
+                f"csv/{doc_id}_{annual_securities_reports[0]['filerName']}.csv",
+                index=False,
+            )
             clean_up_directory()
             print(f"docID: {doc_id} のファイルが正常にダウンロードされました。")
             print("wait 2 seconds")
@@ -147,4 +132,4 @@ if __name__ == "__main__":
     #         exit(0)
     #     else:
     #         print("入力が不正です。4桁の数字を入力してください。")
-    main('6490'+'0')
+    main("6490" + "0")
