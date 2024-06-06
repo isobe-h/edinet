@@ -1,2 +1,7 @@
 requests
 pandas
+flake8
+mypy
+black
+isort
+pytest
