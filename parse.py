@@ -95,6 +95,26 @@ def get_rows_by_item_name(df, item_name):
         return [0, 0]
 
 
+# 有利子負債合計を計算
+# 長期借入金、短期借入金、社債、コマーシャルペーパー、リース債務、その他の有利子負債を合計する
+
+
+def calc_interest_bearing_debt(df):
+    long_term_loans = get_rows_by_item_name(df, "長期借入金")
+    short_term_loans = get_rows_by_item_name(df, "短期借入金")
+    corporate_bonds = get_rows_by_item_name(df, "社債")
+    commercial_papers = get_rows_by_item_name(df, "コマーシャルペーパー")
+    lease_obligations = get_rows_by_item_name(df, "リース債務")
+
+    return (
+        int(long_term_loans[1])
+        + int(short_term_loans[1])
+        + int(corporate_bonds[1])
+        + int(commercial_papers[1])
+        + int(lease_obligations[1])
+    )
+
+
 def get_net_working_capital(df):
     sales_receivables = get_rows_by_item_name(df, "売掛金")
     electronic_records_receivables = get_rows_by_item_name(df, "電子記録債権、流動資産")
@@ -210,10 +230,12 @@ def extract_values(df):
         depreciation = "0"
         print("減価償却費が見つかりませんでした。")
 
-    result = get_net_working_capital(df)
-    print(result[0])
-    print(result[1])
+    net_working_capital = get_net_working_capital(df)
+    print(net_working_capital[0])
+    print(net_working_capital[1])
 
+    interest_bearing_debt = calc_interest_bearing_debt(df)
+    print("有利子負債:", interest_bearing_debt, "円")
     # 全ての値をprint()で表示
     print("売上高:", revenue + "円")
     print("営業利益:", operating_profit + "円")
