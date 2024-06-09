@@ -63,16 +63,24 @@ csv_folder = os.path.join(current_dir, "csv")
 
 
 def remove_unnecessary_columns(df):
-    # dfから要素ID、コンテキストID,ユニットID列を削除
-    # 相対年度の列が、'当期'　以外の行は削除
-    df = df.drop(
-        columns=["要素ID", "コンテキストID", "ユニットID", "単位", "期間・時点"]
-    )
-    # 相対年度の列が、terms_regexに一致する行のみを抽出
-    df = df[df["相対年度"].str.contains(term_regex)]
-    df = df[df["連結・個別"] != "個別"]
-    df = df.drop(columns=["連結・個別"])
-    return df
+	# dfから要素ID、コンテキストID,ユニットID列を削除
+	# 相対年度の列が、'当期'　以外の行は削除
+	df = df.drop(
+			columns=["要素ID", "コンテキストID", "ユニットID", "単位", "期間・時点"]
+	)
+	# 相対年度の列が、terms_regexに一致する行のみを抽出
+	df = df[df["相対年度"].str.contains(term_regex)]
+	df = df[df["連結・個別"] != "個別"]
+	df = df.drop(columns=["連結・個別"])
+	# 項目名の列内の"、経営指標等"のを削除
+	# 総資産額、経営指標等　→　総資産額
+	df["項目名"] = df["項目名"].str.replace("、経営指標等", "")
+	# '項目名'が'所有株式数'から始まる行から、最初の'現金及び預金'の前の行までを削除
+	# 例：所有株式数（単元）－政府及び地方公共団体
+	start_index = df[df["項目名"].str.startswith("所有株式数", na=False)].index[0]
+	end_index = df[df["項目名"] == "現金及び預金"].index[0]
+	df = df.drop(df.index[start_index:end_index])
+	return df
 
 
 term_regex = r"当期?末?|前期?末"
@@ -205,26 +213,23 @@ def extract_values(df):
 # print(f"減価償却: {depreciation:.2f}{money_unit}")
 df = None
 if __name__ == "__main__":
-    if not os.path.exists(
-        os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv")
-    ):
-        df = pd.read_csv(
-            os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社.csv"),
-            encoding="utf-8",
-        )
-        df = remove_unnecessary_columns(df)
-        df.to_csv(
-            os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv"),
-            index=False,
-        )
+	df = pd.read_csv(
+			os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社.csv"),
+			encoding="utf-8",
+	)
+	df = remove_unnecessary_columns(df)
+	df.to_csv(
+			os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv"),
+			index=False,
+	)
 
-    # csvファイルを読み込む
-    df = pd.read_csv(
-        os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv"),
-        encoding="utf-8",
-    )
+	# csvファイルを読み込む
+	df = pd.read_csv(
+			os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv"),
+			encoding="utf-8",
+	)
 
-    extract_values(df)
+	extract_values(df)
 
 
 # 流動資産・流動負債を売上債権・棚卸資産・仕入債務に分類する関数
