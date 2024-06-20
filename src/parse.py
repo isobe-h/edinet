@@ -50,38 +50,9 @@
 なお、同じ項目が複数回記載されている場合は、合計値を表す最後の行を取得する。
  """
 
-import os
 import re
 
 import pandas as pd
-
-# 現在のディレクトリ
-current_dir = os.getcwd()
-
-# csvフォルダのパス
-csv_folder = os.path.join(current_dir, "csv")
-
-
-def remove_unnecessary_columns(df):
-    # dfから要素ID、コンテキストID,ユニットID列を削除
-    # 相対年度の列が、'当期'　以外の行は削除
-    df = df.drop(
-        columns=["要素ID", "コンテキストID", "ユニットID", "単位", "期間・時点"]
-    ).dropna(subset=["項目名"])
-    # 相対年度の列が、terms_regexに一致する行のみを抽出
-    df = df[df["相対年度"].str.contains(term_regex)]
-    df = df[df["連結・個別"] != "個別"]
-    df = df.drop(columns=["連結・個別"])
-    # 項目名の列内の"、経営指標等"のを削除
-    # 総資産額、経営指標等　→　総資産額
-    df["項目名"] = df["項目名"].str.replace("、経営指標等", "")
-    # # '項目名'が'所有株式数'から始まる行から、最初の'現金及び預金'の前の行までを削除
-    # # 例：所有株式数（単元）－政府及び地方公共団体
-    # start_index = df[df["項目名"].str.startswith("所有株式数", na=False)].index[0]
-    # end_index = df[df["項目名"] == "現金及び預金"].index[0] - 1
-    # df = df.drop(df.index[start_index:end_index])
-    return df
-
 
 term_regex = r"当期末?|前期末?"
 
@@ -169,7 +140,7 @@ def get_net_working_capital(df):
     ]
 
 
-def extract_values(df):
+def extract_values(df: pd.DataFrame):
     bs = df.loc[df["項目名"] == "連結貸借対照表 [テキストブロック]", "値"].iloc[0]
 
     # 現金及び預金の取得
@@ -246,38 +217,3 @@ def extract_values(df):
     print("投資有価証券:", str(int(securities) * money_unit) + "円")
     print("設備投資:", capital_expenditure + "円")
     print("減価償却費:", depreciation + "円")
-    # print("正味運転資本の前年との差額:", str(result["正味運転資本"]) + "円")
-
-
-# 計算結果を表示
-# print(f"正味運転資本の前年との差額: {calc_net_working_capital(df):.2f}{money_unit}")
-# print(f"有利子負債: {calc_interest_bearing_debt(df):.2f}{money_unit}")
-# print(f"現金及び預金: {cash_and_deposits:.2f}{money_unit}")
-# print(f"発行済み株式数（自社株を除く）: {shares_outstanding:.2f}株")
-# print(f"売上高: {revenue:.2f}{money_unit}")
-# print(f"営業利益: {operating_profit:.2f}{money_unit}")
-# print(f"有価証券: {securities:.2f}{money_unit}")
-# print(f"設備投資: {capital_expenditure:.2f}{money_unit}")
-# print(f"減価償却: {depreciation:.2f}{money_unit}")
-df = None
-if __name__ == "__main__":
-    df = pd.read_csv(
-        os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社.csv"),
-        encoding="utf-8",
-    )
-    df = remove_unnecessary_columns(df)
-    df.to_csv(
-        os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv"),
-        index=False,
-    )
-
-    # csvファイルを読み込む
-    df = pd.read_csv(
-        os.path.join(csv_folder, "S100R0HJ_日本ピラー工業株式会社_整形済み.csv"),
-        encoding="utf-8",
-    )
-
-    extract_values(df)
-
-# 流動資産・流動負債を売上債権・棚卸資産・仕入債務に分類する関数
-# データ例)"①【連結貸借対照表】  (単位：百万円) 前連結会計年度(2022年３月31日)当連結会計年度(2023年３月31日)資産の部  流動資産  現金及び預金21,16522,458受取手形1,4181,664売掛金7,6389,514電子記録債権3,9535,812商品及び製品912943仕掛品1,6982,008原材料及び貯蔵品9181,771その他347435貸倒引当金△2△3流動資産合計38,05044,605固定資産  有形固定資産  建物及び構築物（純額）※１ 12,452※１ 11,416機械装置及び運搬具（純額）※１ 2,258※１ 2,343土地4,7734,614建設仮勘定5031,867その他（純額）※１ 285※１ 883有形固定資産合計20,27221,124無形固定資産  ソフトウエア203216電話加入権1312その他612無形固定資産合計222242投資その他の資産  投資有価証券※２ 5,490※２ 5,693退職給付に係る資産369433繰延税金資産129122その他※２ 476289貸倒引当金△18△18投資その他の資産合計6,4466,520固定資産合計26,94127,886資産合計64,99172,492    (単位：百万円) 前連結会計年度(2022年３月31日)当連結会計年度(2023年３月31日)負債の部  流動負債  支払手形及び買掛金3,4343,189電子記録債務293278短期借入金2501,250未払金1,1091,442未払法人税等2,9742,321賞与引当金856958資産除去債務117－その他1,0781,052流動負債合計10,11310,492固定負債  長期借入金100100繰延税金負債135158退職給付に係る負債1,5961,556資産除去債務158164その他228652固定負債合計2,2192,631負債合計12,33313,124純資産の部  株主資本  資本金4,9664,966資本剰余金5,2085,222利益剰余金41,13748,300自己株式△1,572△2,562株主資本合計49,73955,927その他の包括利益累計額  その他有価証券評価差額金2,3812,317為替換算調整勘定4681,020退職給付に係る調整累計額68102その他の包括利益累計額合計2,9193,441純資産合計52,65859,368負債純資産合計64,99172,492"

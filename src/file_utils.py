@@ -1,8 +1,9 @@
-import zipfile
-import io
 import glob
-import pandas as pd
+import io
 import os
+import zipfile
+
+import pandas as pd
 
 DOC_PATH = "csv"
 
@@ -26,6 +27,8 @@ def csv_to_df():
 
 
 def clean_up_directory():
-    # jpcrp*.csvファイルを削除
-    for file_path in glob.glob("csv/XBRL_TO_CSV/jpaud*.csv"):
-        os.remove(file_path)
+    # csv/XBRL_TO_CSVディレクトリを削除
+    files = glob.glob("csv/XBRL_TO_CSV/*")
+    for f in files:
+        os.remove(f)
+    os.rmdir("csv/XBRL_TO_CSV")

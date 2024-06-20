@@ -1,6 +1,7 @@
 .DS_Store
 myenv
 csv
+processed_csv
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
