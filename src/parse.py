@@ -204,10 +204,8 @@ def extract_values(df: pd.DataFrame):
     net_working_capital = get_net_working_capital(df)
     print(net_working_capital[0])
     print(net_working_capital[1])
-
     interest_bearing_debt = calc_interest_bearing_debt(df)
     print("有利子負債:", interest_bearing_debt, "円")
-    # 全ての値をprint()で表示
     print("売上高:", revenue + "円")
     print("営業利益:", operating_profit + "円")
     print("前年の売上高:", previous_revenue + "円")
@@ -217,3 +215,8 @@ def extract_values(df: pd.DataFrame):
     print("投資有価証券:", str(int(securities) * money_unit) + "円")
     print("設備投資:", capital_expenditure + "円")
     print("減価償却費:", depreciation + "円")
+
+
+def parse_csv(path: str):
+    df = pd.read_csv(path)
+    extract_values(df)

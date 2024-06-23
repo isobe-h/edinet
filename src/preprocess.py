@@ -35,27 +35,22 @@ def remove_unnecessary_columns(df):
     return df
 
 
-if __name__ == "__main__":
-    # フォルダ内のファイル名を取得
-    files = os.listdir(csv_folder)
-    # フォルダ内のファイル数分繰り返す
-    for file in files:
-        # csvファイルのパス
-        file_path = os.path.join(csv_folder, file)
-        # csvファイルを読み込む
-        df = pd.read_csv(file_path)
-        # jpcrp_cor:CompanyNameCoverPage,会社名、表紙,FilingDateInstant,提出日時点,その他,時点,－,－,ｓａｎｔｅｃ　Ｈｏｌｄｉｎｇｓ株式会社
-        # の行から、値の列の値を取得
-        company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
-        # 不要な列を削除
-        df = remove_unnecessary_columns(df)
-        # processed_csv_folderが存在しない場合は作成
-        if not os.path.exists(processed_csv_folder):
-            os.makedirs(processed_csv_folder)
+def preprocess_csv(path: str):
+    # csvファイルを読み込む
+    df = pd.read_csv(path)
+    # jpcrp_cor:CompanyNameCoverPage,会社名、表紙,FilingDateInstant,提出日時点,その他,時点,－,－,ｓａｎｔｅｃ　Ｈｏｌｄｉｎｇｓ株式会社
+    # の行から、値の列の値を取得
+    company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
+    # 不要な列を削除
+    df = remove_unnecessary_columns(df)
+    # processed_csv_folderが存在しない場合は作成
+    if not os.path.exists(processed_csv_folder):
+        os.makedirs(processed_csv_folder)
 
-        # 前処理済みのcsvファイルを保存
-        df.to_csv(
-            os.path.join(processed_csv_folder, company_name + "_" + file),
-            index=False,
-            encoding="utf-8",
-        )
+    # 前処理済みのcsvファイルを保存
+    df.to_csv(
+        os.path.join(processed_csv_folder, company_name + "_" + path.split("/")[-1]),
+        index=False,
+        encoding="utf-8",
+    )
+    return df

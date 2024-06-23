@@ -1,6 +1,5 @@
 import os
 import re
-import time
 import zipfile
 from datetime import datetime
 
@@ -8,12 +7,14 @@ import pandas as pd
 
 from fetch import fetch_annual_report, search_annual_reports_by_term
 from file_utils import clean_up_directory, csv_to_df, extract_zip
+from preprocess import preprocess_csv
+from parse import parse_csv
 
 save_dir = os.path.join(os.getcwd(), "csv")
 print(save_dir)
 
 
-def main(date: str):
+def save_annual_report(date: str):
     start_date = datetime.strptime(date, "%Y%m%d")
     end_date = datetime.strptime(date, "%Y%m%d")
 
@@ -54,18 +55,17 @@ def main(date: str):
         title = (
             f"{selected_doc_id}_{sanitize_filename(selected_doc['docDescription'])}.csv"
         )
-        print(title)
+        save_path = (os.path.join(save_dir, title),)
         df.to_csv(
-            os.path.join(save_dir, title),
+            save_path,
             index=False,
             encoding="utf-8",
         )
         clean_up_directory()
-        print(f"docID: {selected_doc_id} のファイルが正常にダウンロードされました。")
-        print("wait 2 seconds")
-        time.sleep(2)
+        return save_path
     except zipfile.BadZipFile:
         print(f"docID: {selected_doc_id} のファイルはZIPファイルではありません。")
+        exit(1)
 
 
 def sanitize_filename(name):
@@ -73,18 +73,24 @@ def sanitize_filename(name):
     return re.sub(r'[\/:*?"<>|\(\)]+', "", name)
 
 
+def input_date():
+    while True:
+        date = input("検索する日付を入力してください(yyyymmdd): ")
+        if date == "q":
+            return
+        # yyyymmddかどうか
+        if date.isdigit() and len(date) == 8:
+            return date
+        else:
+            print("入力が不正です。4桁の数字を入力してください。")
+            input_date()
+
+
 if __name__ == "__main__":
     if os.getenv("KEY") is None:
         print("APIキーが設定されていません。")
         exit(1)
-    while True:
-        # date = input("検索する日付を入力してください(yyyymmdd): ")
-        date = "20240620"
-        if date == "q":
-            break
-        # yyyymmddかどうか
-        if date.isdigit() and len(date) == 8:
-            main(date)
-            exit(0)
-        else:
-            print("入力が不正です。4桁の数字を入力してください。")
+    date = input_date()
+    save_path = save_annual_report(date)
+    preprocess_csv(save_path)
+    parse_csv(save_path)
