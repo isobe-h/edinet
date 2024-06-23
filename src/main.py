@@ -3,12 +3,10 @@ import re
 import zipfile
 from datetime import datetime
 
-import pandas as pd
-
 from fetch import fetch_annual_report, search_annual_reports_by_term
 from file_utils import clean_up_directory, csv_to_df, extract_zip
-from preprocess import preprocess_csv
 from parse import parse_csv
+from preprocess import preprocess_csv
 
 save_dir = os.path.join(os.getcwd(), "csv")
 print(save_dir)
@@ -55,7 +53,8 @@ def save_annual_report(date: str):
         title = (
             f"{selected_doc_id}_{sanitize_filename(selected_doc['docDescription'])}.csv"
         )
-        save_path = (os.path.join(save_dir, title),)
+        save_path = os.path.join(save_dir, title)
+
         df.to_csv(
             save_path,
             index=False,
