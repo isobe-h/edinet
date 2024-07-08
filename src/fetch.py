@@ -51,9 +51,11 @@ def search_annual_reports_by_term(start_date, end_date) -> list[ReportProperties
                 filerName = row.get("filerName")  # 提出者名
                 if description is None or docId is None or secCode is None:
                     continue
-                if "訂正有価証券報告書" in description or "受益証券" in description:
+                if "訂正有価証券報告書" in str(description) or "受益証券" in str(
+                    description
+                ):
                     continue
-                if "有価証券報告書" in description:
+                if "有価証券報告書" in str(description):
                     report_info = {
                         "docID": docId,
                         "secCode": secCode,
