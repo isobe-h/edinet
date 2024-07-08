@@ -1,53 +1,58 @@
-from typing import NotRequired, Optional, TypedDict
+from typing import TypedDict
 
 
 class FinancialSumary(TypedDict):
-    revenue: int
-    operating_profit: str
-    tax_rate: int
+    revenues: tuple[int]
+    operating_profits: tuple[int]
+    nopat: tuple[int]
+    deprecations: tuple[int]
+    capital_expenditure: tuple[int]
 
 
 # 売上債権
 class SalesReceivables(TypedDict):
-    sales_receivables: Optional[int]
-    electronic_records_receivables: Optional[int]
-    receivable_notes: Optional[int]
-    contract_assets: Optional[int]
-    other_current_assets: Optional[int]
+    accounts_receivables: tuple[int]
+    electronic_records_receivables: tuple[int]
+    receivable_notes: tuple[int]
+    contract_assets: tuple[int]
+    other_current_assets: tuple[int]
 
 
 # 棚卸資産
 class Inventory(TypedDict):
-    inventories: Optional[int]
-    work_in_process: Optional[int]
-    raw_materials: Optional[int]
+    merchandise_or_products: tuple[int]
+    work_in_process: tuple[int]
+    raw_materials: tuple[int]
 
 
 # 仕入債務
-class TradePayables(TypedDict):
-    trade_payables: Optional[int]
-    unpaid_expenses: Optional[int]
-    unpaid_money: Optional[int]
-    electronic_records_debt: Optional[int]
-    contract_liabilities: Optional[int]
-    other_current_liabilities: Optional[int]
+class PurchaseDebt(TypedDict):
+    trade_payables: tuple[int]
+    unpaid_expenses: tuple[int]
+    unpaid_money: tuple[int]
+    electronic_records_debt: tuple[int]
+    contract_liabilities: tuple[int]
+    other_current_liabilities: tuple[int]
 
 
 # 正味運転資本
 class NetOperatingCapital(TypedDict):
     sales_receivables: SalesReceivables
     inventories: Inventory
-    trade_payables: TradePayables
+    purchase_debt: PurchaseDebt
+    sum: tuple[int]
 
 
 # 有利子負債
 class InterestBearingDebt(TypedDict):
-    short_term_debt: Optional[int]
-    long_term_debt: Optional[int]
-    corporate_bonds: Optional[int]
-    commercial_papers: Optional[int]
-    lease_obligations: Optional[int]
-    others: Optional[int]
+    short_term_debt: int
+    long_term_debt_within_1year: int
+    long_term_debt: int
+    corporate_bonds: int
+    commercial_papers: int
+    lease_obligations: int
+    others: int
+    sum: int
 
 
 class ReportProperties(TypedDict):
@@ -55,3 +60,40 @@ class ReportProperties(TypedDict):
     secCode: str
     docDescription: str
     filerName: str
+
+
+japanese_dict = {
+    "revenues": "売上高",
+    "operating_profits": "営業利益",
+    "nopat": "NOPLAT（税引後営業利益,税率30%）",
+    "deprecations": "減価償却費",
+    "capital_expenditure": "設備投資額",
+    "accounts_receivables": "売掛金",
+    "electronic_records_receivables": "電子記録債権",
+    "receivable_notes": "受取手形",
+    "contract_assets": "契約資産",
+    "other_current_assets": "その他の流動資産",
+    "merchandise_or_products": "商品及び製品",
+    "work_in_process": "仕掛品",
+    "raw_materials": "原材料",
+    "trade_payables": "支払手形及び買掛金",
+    "unpaid_expenses": "未払費用",
+    "unpaid_money": "未払金",
+    "electronic_records_debt": "電子記録債務",
+    "contract_liabilities": "契約負債",
+    "other_current_liabilities": "その他の流動負債",
+    "sales_receivables": "売上債権",
+    "inventories": "棚卸資産",
+    "purchase_debt": "仕入債務",
+    "sum": "正味運転資本合計",
+    # "１年内返済予定の長期借入金",
+    "long_term_debt_within_1year": "１年内返済予定の長期借入金",
+    "short_term_debt": "短期借入金",
+    "long_term_debt": "長期借入金",
+    "corporate_bonds": "社債",
+    "commercial_papers": "コマーシャルペーパー",
+    "lease_obligations": "リース債務",
+    "others": "その他の有利子負債",
+    "sum_of_net_operating_capitals": "正味運転資本合計",
+    "interest_bearing_debt_sum": "有利子負債合計",
+}
