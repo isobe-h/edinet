@@ -250,7 +250,8 @@ def extract_and_process_data(df):
         + int(financial_summary["deprecations"][0])
     )
     results = {
-        "単位": str(money_unit) + "円",
+        "単位": str(money_unit),
+        "期": ["前期", "当期"],
         **financial_summary,
         "営業利益成長率": [
             calculate_growth_rate(financial_summary["operating_profits"])
