@@ -65,7 +65,8 @@ class ReportProperties(TypedDict):
 japanese_dict = {
     "revenues": "売上高",
     "operating_profits": "営業利益",
-    "nopat": "NOPLAT（税引後営業利益,税率30%）",
+    "nopat": "NOPAT（税引後営業利益,税率30%）",
+    "noplat": "NOPLAT(実行税引後営業利益)",
     "deprecations": "減価償却費",
     "capital_expenditure": "設備投資額",
     "accounts_receivables": "売掛金",
