@@ -92,4 +92,5 @@ if __name__ == "__main__":
     date = input_date()
     save_path = save_annual_report(date)
     preprocess_csv(save_path)
-    parse_csv(save_path)
+    corporate_name = save_path.split("_")[1].split(".")[0] + ".csv"
+    parse_csv(save_path, corporate_name)
