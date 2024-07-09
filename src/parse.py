@@ -65,22 +65,25 @@ from type import (
 )
 
 term_regex = r"当期末?|前期末?"
+TAX_RATE = 0.3
+TAX_COEFFICIENT = 1 - TAX_RATE
 
 
-def get_last_value(df, item_name, term=None):
+def get_last_value(df, item_name, term=None) -> int:
     """
     指定された項目名から最後の値を取得します。
     """
-    if item_name in df["項目名"].values:
-        if term:
-            return df.loc[
-                (df["項目名"] == item_name) & (df["相対年度"].str.contains(term)),
-                "値",
-            ].iloc[-1]
-        else:
-            return df.loc[df["項目名"] == item_name, "値"].iloc[-1]
+    value = 0
+    if item_name not in df["項目名"].values:
+        return value
+    if term:
+        value = df.loc[
+            (df["項目名"] == item_name) & (df["相対年度"].str.contains(term)),
+            "値",
+        ].iloc[-1]
     else:
-        return 0
+        value = df.loc[df["項目名"] == item_name, "値"].iloc[-1]
+    return int(value)
 
 
 def calc_interest_bearing_debt(df, term=None) -> InterestBearingDebt:
@@ -92,22 +95,46 @@ def calc_interest_bearing_debt(df, term=None) -> InterestBearingDebt:
     corporate_bonds = get_last_value(df, "社債", "当期末")
     commercial_papers = get_last_value(df, "コマーシャルペーパー", "当期末")
     lease_obligations = get_last_value(df, "リース債務", "当期末")
-    sum = (
-        int(long_term_debt)
-        + int(short_term_debt)
-        + int(corporate_bonds)
-        + int(commercial_papers)
-        + int(lease_obligations)
-        + int(long_term_debt_within_1year)
+    sum_current_period = sum(
+        [
+            long_term_debt,
+            short_term_debt,
+            corporate_bonds,
+            commercial_papers,
+            lease_obligations,
+            long_term_debt_within_1year,
+        ]
+    )
+
+    long_term_debt_last_period = get_last_value(df, "長期借入金", "前期末")
+    short_term_debt_last_period = get_last_value(df, "短期借入金", "前期末")
+    long_term_debt_within_1year_last_period = get_last_value(
+        df, "１年内返済予定の長期借入金", "前期末"
+    )
+    corporate_bonds_last_period = get_last_value(df, "社債", "前期末")
+    commercial_papers_last_period = get_last_value(df, "コマーシャルペーパー", "前期末")
+    lease_obligations_last_period = get_last_value(df, "リース債務", "前期末")
+    sum_last_period = sum(
+        [
+            long_term_debt_last_period,
+            short_term_debt_last_period,
+            corporate_bonds_last_period,
+            commercial_papers_last_period,
+            lease_obligations_last_period,
+            long_term_debt_within_1year_last_period,
+        ]
     )
 
     interest_bearing_debt: InterestBearingDebt = {
-        "short_term_debt": int(short_term_debt) + int(long_term_debt_within_1year),
-        "long_term_debt": long_term_debt,
-        "corporate_bonds": corporate_bonds,
-        "commercial_papers": commercial_papers,
-        "lease_obligations": lease_obligations,
-        "interest_bearing_debt_sum": sum,
+        "short_term_debt": [
+            short_term_debt_last_period + long_term_debt_within_1year_last_period,
+            short_term_debt + long_term_debt_within_1year,
+        ],
+        "long_term_debt": [long_term_debt_last_period, long_term_debt],
+        "corporate_bonds": [corporate_bonds_last_period, corporate_bonds],
+        "commercial_papers": [commercial_papers_last_period, commercial_papers],
+        "lease_obligations": [lease_obligations_last_period, lease_obligations],
+        "interest_bearing_debt_sum": [sum_last_period, sum_current_period],
     }
     return interest_bearing_debt
 
@@ -177,16 +204,16 @@ def get_net_working_capital(df) -> NetOperatingCapital:
     }
 
     net_working_capital: NetOperatingCapital = {
-        "sales_receivables": sales_receivables,
-        "inventories": inventories,
-        "purchase_debt": purchase_debt,
+        **sales_receivables,
+        **inventories,
+        **purchase_debt,
         "sum_of_net_operating_capitals": [
-            sum([int(value[0]) for value in sales_receivables.values()])
-            + sum([int(value[0]) for value in inventories.values()])
-            - sum([int(value[0]) for value in purchase_debt.values()]),
-            sum([int(value[1]) for value in sales_receivables.values()])
-            + sum([int(value[1]) for value in inventories.values()])
-            - sum([int(value[1]) for value in purchase_debt.values()]),
+            sum([value[0] for value in sales_receivables.values()])
+            + sum([value[0] for value in inventories.values()])
+            - sum([value[0] for value in purchase_debt.values()]),
+            sum([value[1] for value in sales_receivables.values()])
+            + sum([value[1] for value in inventories.values()])
+            - sum([value[1] for value in purchase_debt.values()]),
         ],
     }
     return net_working_capital
@@ -195,8 +222,14 @@ def get_net_working_capital(df) -> NetOperatingCapital:
 def get_idle_assets(df):
 
     return {
-        "投資有価証券": get_last_value(df, "投資有価証券", "当期"),
-        "現金及び預金": get_last_value(df, "現金及び預金", "当期"),
+        "投資有価証券": [
+            get_last_value(df, "投資有価証券", "前期"),
+            get_last_value(df, "投資有価証券", "当期"),
+        ],
+        "現金及び預金": [
+            get_last_value(df, "現金及び預金", "前期"),
+            get_last_value(df, "現金及び預金", "当期"),
+        ],
     }
 
 
@@ -209,6 +242,14 @@ def get_money_unit(bs: str) -> int:
         raise Exception("単位が取得できませんでした")
 
 
+# 実効税率を取得
+def calculate_effective_tax_rate(
+    tax: int, net_income_before_tax_current_period: int
+) -> float:
+    # 実効税率
+    return round((tax / net_income_before_tax_current_period), 2)
+
+
 def get_financial_summary(df) -> FinancialSumary:
     revenues = [
         get_last_value(df, "売上高", "前期"),
@@ -218,7 +259,10 @@ def get_financial_summary(df) -> FinancialSumary:
         get_last_value(df, "営業利益又は営業損失（△）", "前期"),
         get_last_value(df, "営業利益又は営業損失（△）", "当期"),
     ]
-    nopat = [int(operating_profits[0]) * 0.7, int(operating_profits[1]) * 0.7]
+    nopat = [
+        float(operating_profits[0]) * TAX_COEFFICIENT,
+        float(operating_profits[1]) * TAX_COEFFICIENT,
+    ]
     return {
         "revenues": revenues,
         "operating_profits": operating_profits,
@@ -233,51 +277,99 @@ def get_financial_summary(df) -> FinancialSumary:
     }
 
 
+def calculate_roic(
+    effective_tax_rates: tuple[float, float],
+    operating_incomes: tuple[int, int],
+    interest_bearing_debts: tuple[int, int],
+):
+    shareholders_equity = (
+        get_last_value(df, "株主資本", "前期"),
+        get_last_value(df, "株主資本", "当期"),
+    )
+    # 投下資本
+    invested_capital = (
+        shareholders_equity[0] + interest_bearing_debts[0],
+        shareholders_equity[1] + interest_bearing_debts[1],
+    )
+    noplats = (
+        float(operating_incomes[0]) * (1 - effective_tax_rates[0]),
+        float(operating_incomes[1]) * (1 - effective_tax_rates[1]),
+    )
+    print(noplats[0] / invested_capital[0], noplats[1] / invested_capital[1])
+    return [
+        round(noplats[0] / invested_capital[0], 4) * 100,
+        round(noplats[1] / invested_capital[1], 4) * 100,
+    ]
+
+
 def extract_and_process_data(df):
     bs: str = df.loc[df["項目名"] == "連結貸借対照表 [テキストブロック]", "値"].iloc[0]
-
     financial_summary = get_financial_summary(df)
     interest_bearing_debt = calc_interest_bearing_debt(df)
     net_working_capital = get_net_working_capital(df)
     money_unit = get_money_unit(bs)
     idle_assets = get_idle_assets(df)
-    number_of_stock = int(get_last_value(df, "発行済株式総数（普通株式）")) - int(
-        get_last_value(df, "自己名義所有株式数（株）、自己株式等")
+    number_of_stock = get_last_value(df, "発行済株式総数（普通株式）") - get_last_value(
+        df, "自己名義所有株式数（株）、自己株式等"
     )
+
     fcf = (
-        int(financial_summary["nopat"][0])
-        - int(financial_summary["capital_expenditure"][0])
-        + int(financial_summary["deprecations"][0])
+        financial_summary["nopat"][0]
+        - financial_summary["capital_expenditure"][0]
+        + financial_summary["deprecations"][0]
     )
-    results = {
-        "単位": str(money_unit),
+    effective_tax_rates: tuple[float, float] = (
+        calculate_effective_tax_rate(
+            get_last_value(df, "法人税等", "前期"),
+            get_last_value(df, "税引前当期純利益又は税引前当期純損失（△）", "前期"),
+        ),
+        calculate_effective_tax_rate(
+            get_last_value(df, "法人税等", "当期"),
+            get_last_value(df, "税引前当期純利益又は税引前当期純損失（△）", "当期"),
+        ),
+    )
+    return {
+        # "単位": str(money_unit),
         "期": ["前期", "当期"],
         **financial_summary,
         "営業利益成長率": [
             calculate_growth_rate(financial_summary["operating_profits"])
         ],
         "FCF": [fcf],
+        "ROIC": calculate_roic(
+            effective_tax_rates,
+            financial_summary["operating_profits"],
+            interest_bearing_debt["interest_bearing_debt_sum"],
+        ),
+        "": "",
+        "正味運転資本": "",
         **net_working_capital,
         "正味運転資本の増減": net_working_capital["sum_of_net_operating_capitals"][1]
         - net_working_capital["sum_of_net_operating_capitals"][0],
-        "株式数": number_of_stock,
+        " ": "",
+        "株式数(自社株控除後)": number_of_stock,
         **idle_assets,
+        "有利子負債": "",
         **interest_bearing_debt,
-        "純有利子負債": int(idle_assets["現金及び預金"])
-        - interest_bearing_debt["interest_bearing_debt_sum"],
+        "純有利子負債": [
+            idle_assets["現金及び預金"][0]
+            - interest_bearing_debt["interest_bearing_debt_sum"][0],
+            idle_assets["現金及び預金"][1]
+            - interest_bearing_debt["interest_bearing_debt_sum"][1],
+        ],
     }
-    export_to_csv(results, "results.csv")
 
 
-def calculate_growth_rate(values):
+def calculate_growth_rate(values) -> float:
     """Calculate growth rate between two periods"""
     if values[1] and values[0]:
-        return round(((int(values[1]) - int(values[0])) / int(values[0])) * 100, 2)
+        return round(((values[1] - values[0]) / values[0]) * 100, 2)
     return 0
 
 
 def export_to_csv(data, path):
-    with open(path, "w", encoding="sjis", newline="") as file:
+    # utf-8-sigにすることで、Excelで開いた際に文字化けを防ぐ
+    with open(path, "w", encoding="utf-8-sig", newline="") as file:
         writer = csv.writer(file)
 
         for key, values in data.items():
@@ -309,10 +401,17 @@ def format_dict_values(data):
         return ", ".join([f"{key}: {value}" for key, value in data.items()])
     elif isinstance(data, list):
         # リストの要素をカンマ区切りで整形
-        return ", ".join(map(str, data))
+        return ", ".join(data)
 
 
 if __name__ == "__main__":
     path = "/Users/alucard/edinetapi/processed_csv/ｓａｎｔｅｃ　Ｈｏｌｄｉｎｇｓ株式会社_S100TOES_有価証券報告書－第45期20230401－20240331.csv"
     df = pd.read_csv(path)
     result = extract_and_process_data(df)
+    export_to_csv(result, "results.csv")
+
+
+def parse_csv(path, filename):
+    df = pd.read_csv(path, encoding="utf-8")
+    result = extract_and_process_data(df)
+    export_to_csv(result, filename)
