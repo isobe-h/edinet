@@ -309,14 +309,14 @@ def extract_and_process_data(df):
     net_working_capital = get_net_working_capital(df)
     money_unit = get_money_unit(bs)
     idle_assets = get_idle_assets(df)
-    number_of_stock = get_last_value(df, "発行済株式総数（普通株式）") - get_last_value(
-        df, "自己名義所有株式数（株）、自己株式等"
-    )
+    number_of_stock = get_last_value(df, "発行済株式総数（普通株式）")
+    number_of_company_stock = get_last_value(df, "自己名義所有株式数（株）、自己株式等")
 
     fcf = (
-        financial_summary["nopat"][0]
+        financial_summary["nopat"][1]
         - financial_summary["capital_expenditure"][0]
-        + financial_summary["deprecations"][0]
+        + financial_summary["deprecations"][1]
+        - net_working_capital["sum_of_net_operating_capitals"][1]
     )
     effective_tax_rates: tuple[float, float] = (
         calculate_effective_tax_rate(
@@ -336,18 +336,19 @@ def extract_and_process_data(df):
             calculate_growth_rate(financial_summary["operating_profits"])
         ],
         "FCF": [fcf],
-        "ROIC": calculate_roic(
+        "ROIC(NOPLAT/投下資本)": calculate_roic(
             effective_tax_rates,
             financial_summary["operating_profits"],
             interest_bearing_debt["interest_bearing_debt_sum"],
         ),
+        "BPS": get_last_value(df, "純資産額", "当期末") / number_of_stock,
         "": "",
         "正味運転資本": "",
         **net_working_capital,
         "正味運転資本の増減": net_working_capital["sum_of_net_operating_capitals"][1]
         - net_working_capital["sum_of_net_operating_capitals"][0],
         " ": "",
-        "株式数(自社株控除後)": number_of_stock,
+        "株式数(自社株控除後)": number_of_stock - number_of_company_stock,
         **idle_assets,
         "有利子負債": "",
         **interest_bearing_debt,
