@@ -144,7 +144,11 @@ def get_last_value(df, item_name, term=None) -> int:
 
 def calc_interest_bearing_debt(df) -> InterestBearingDebt:
     interest_bearing_debt_item_names = set(
-        [get_item_name(df, x, "当期末") for x in interest_bearing_debt_items]
+        [
+            get_item_name(df, x, "当期末")
+            for x in interest_bearing_debt_items
+            if get_item_name(df, x, "当期") != ""
+        ]
     )
     interest_bearing_debt = {
         item_name: [
@@ -165,14 +169,29 @@ def calc_interest_bearing_debt(df) -> InterestBearingDebt:
 def get_net_working_capital(df) -> NetOperatingCapital:
     # 重複項目が発生するため、項目名からsetを取得
     sales_receivables_item_names = set(
-        [get_item_name(df, x, "当期") for x in sales_receivables_items]
+        [
+            get_item_name(df, x, "当期")
+            for x in sales_receivables_items
+            if get_item_name(df, x, "当期") != ""
+        ]
     )
     inventories_item_names = set(
-        [get_item_name(df, x, "当期") for x in inventories_items]
+        [
+            get_item_name(df, x, "当期")
+            for x in inventories_items
+            if get_item_name(df, x, "当期") != ""
+        ]
     )
     purchase_debt_item_names = set(
-        [get_item_name(df, x, "当期") for x in purchase_debt_items]
+        [
+            get_item_name(df, x, "当期")
+            for x in purchase_debt_items
+            if get_item_name(df, x, "当期") != ""
+        ]
     )
+    print(sales_receivables_item_names)
+    print(inventories_item_names)
+    print(purchase_debt_item_names)
     sales_receivables = {
         item_name: [
             get_last_value(df, item_name, "前期"),
@@ -243,10 +262,6 @@ def calculate_effective_tax_rate(
 
 
 def get_financial_summary(df) -> FinancialSumary:
-    revenues = [
-        get_last_value(df, "売上高", "前期"),
-        get_last_value(df, "売上高", "当期"),
-    ]
     operating_profits = [
         get_last_value(df, "営業利益又は営業損失（△）", "前期"),
         get_last_value(df, "営業利益又は営業損失（△）", "当期"),
@@ -256,7 +271,10 @@ def get_financial_summary(df) -> FinancialSumary:
         float(operating_profits[1]) * TAX_COEFFICIENT,
     ]
     return {
-        "revenues": revenues,
+        "revenues": [
+            get_last_value(df, "売上高", "前期"),
+            get_last_value(df, "売上高", "当期"),
+        ],
         "operating_profits": operating_profits,
         "nopat": nopat,
         "deprecations": [
@@ -264,6 +282,7 @@ def get_financial_summary(df) -> FinancialSumary:
             get_last_value(df, "減価償却費、セグメント情報", "当期"),
         ],
         "capital_expenditure": [
+            "-",
             get_last_value(df, "設備投資額、設備投資等の概要", "当期"),
         ],
     }
@@ -341,7 +360,7 @@ def extract_and_process_data(df):
 
     fcf = (
         financial_summary["nopat"][1]
-        - financial_summary["capital_expenditure"][0]
+        - financial_summary["capital_expenditure"][1]
         + financial_summary["deprecations"][1]
         - net_working_capital["sum_of_net_operating_capitals"][1]
     )
@@ -355,27 +374,34 @@ def extract_and_process_data(df):
             get_last_value(df, "税引前当期純利益又は税引前当期純損失（△）", "当期"),
         ),
     )
+    bps = round(get_last_value(df, "純資産額", "当期末") / number_of_stock, 2)
     return {
         # "単位": str(money_unit),
         "期": ["前期", "当期"],
         **financial_summary,
         "営業利益成長率": [
-            calculate_growth_rate(financial_summary["operating_profits"])
+            "-",
+            calculate_growth_rate(financial_summary["operating_profits"]),
         ],
-        "FCF": [fcf],
+        "FCF": ["-", fcf],
         "ROIC(NOPLAT/投下資本)": calculate_roic(
             effective_tax_rates,
             financial_summary["operating_profits"],
             interest_bearing_debt["sum"],
         ),
-        "BPS": get_last_value(df, "純資産額", "当期末") / number_of_stock,
-        "": "",
+        "BPS": [
+            "-",
+            bps,
+        ],
         "正味運転資本": "",
         **net_working_capital,
-        "正味運転資本の増減": net_working_capital["sum_of_net_operating_capitals"][1]
-        - net_working_capital["sum_of_net_operating_capitals"][0],
+        "正味運転資本の増減": [
+            "-",
+            net_working_capital["sum_of_net_operating_capitals"][1]
+            - net_working_capital["sum_of_net_operating_capitals"][0],
+        ],
         " ": "",
-        "株式数(自社株控除後)": number_of_stock - number_of_company_stock,
+        "株式数(自社株控除後)": ["-", number_of_stock - number_of_company_stock],
         **idle_assets,
         "有利子負債": "",
         **interest_bearing_debt,
@@ -383,7 +409,7 @@ def extract_and_process_data(df):
             idle_assets["現金及び預金"][0] - interest_bearing_debt["sum"][0],
             idle_assets["現金及び預金"][1] - interest_bearing_debt["sum"][1],
         ],
-        "債権者コスト（要修正）": debt_rate,
+        "債権者コスト（要修正）": ["-", debt_rate],
     }
 
 
