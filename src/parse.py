@@ -67,6 +67,62 @@ from type import (
 term_regex = r"当期末?|前期末?"
 TAX_RATE = 0.3
 TAX_COEFFICIENT = 1 - TAX_RATE
+# 売上債権
+sales_receivables_items = [
+    "売掛金",
+    "電子記録債権",
+    "受取手形",
+    "契約資産",
+    "その他、流動資産",
+    "前渡金",
+]
+# 棚卸資産
+inventories_items = ["商品及び製品", "仕掛品", "原材料及び貯蔵品"]
+# 仕入債務
+purchase_debt_items = [
+    "支払手形",
+    "買掛金",
+    "未払費用",
+    "未払金",
+    "電子記録債務",
+    "契約負債",
+    "前受金",
+    "その他、流動負債",
+]
+# 有利子負債
+interest_bearing_debt_items = [
+    "短期借入金",
+    "短期社債",
+    "コマーシャルペーパー",
+    "リース債務（流動負債）",
+    "１年内返済予定の長期借入金",
+    "長期借入金",
+    "社債",
+    "転換社債",
+    "新株予約権付転換社債",
+    "新株予約権付社債",
+    "リース債務（固定負債）",
+]
+
+
+def get_item_name(df, item_name, term=None) -> str:
+    """
+    指定された項目名を含む項目の名前を取得します。
+    完全合致する項目が複数ある場合は、最初の項目を返します。
+    ないばあいは、部分一致する項目の最初の項目を返します。
+    """
+    if term:
+        values = df.loc[
+            (df["項目名"] == item_name) & (df["相対年度"].str.contains(term)),
+            "項目名",
+        ].values
+        if len(values) > 0:
+            return values[0]
+    else:
+        values = df.loc[df["項目名"] == item_name, "項目名"].values[0]
+        if len(values) > 0:
+            return values[0]
+    return ""
 
 
 def get_last_value(df, item_name, term=None) -> int:
@@ -78,129 +134,64 @@ def get_last_value(df, item_name, term=None) -> int:
         return value
     if term:
         value = df.loc[
-            (df["項目名"] == item_name) & (df["相対年度"].str.contains(term)),
-            "値",
+            (df["項目名"] == item_name) & (df["相対年度"].str.contains(term)), "値"
         ].iloc[-1]
     else:
         value = df.loc[df["項目名"] == item_name, "値"].iloc[-1]
     return int(value)
 
 
-def calc_interest_bearing_debt(df, term=None) -> InterestBearingDebt:
-    long_term_debt = get_last_value(df, "長期借入金", "当期末")
-    short_term_debt = get_last_value(df, "短期借入金", "当期末")
-    long_term_debt_within_1year = get_last_value(
-        df, "１年内返済予定の長期借入金", "当期末"
+def calc_interest_bearing_debt(df) -> InterestBearingDebt:
+    interest_bearing_debt_item_names = set(
+        [get_item_name(df, x, "当期末") for x in interest_bearing_debt_items]
     )
-    corporate_bonds = get_last_value(df, "社債", "当期末")
-    commercial_papers = get_last_value(df, "コマーシャルペーパー", "当期末")
-    lease_obligations = get_last_value(df, "リース債務", "当期末")
-    sum_current_period = sum(
-        [
-            long_term_debt,
-            short_term_debt,
-            corporate_bonds,
-            commercial_papers,
-            lease_obligations,
-            long_term_debt_within_1year,
+    interest_bearing_debt = {
+        item_name: [
+            get_last_value(df, item_name, "前期末"),
+            get_last_value(df, item_name, "当期末"),
         ]
-    )
-
-    long_term_debt_last_period = get_last_value(df, "長期借入金", "前期末")
-    short_term_debt_last_period = get_last_value(df, "短期借入金", "前期末")
-    long_term_debt_within_1year_last_period = get_last_value(
-        df, "１年内返済予定の長期借入金", "前期末"
-    )
-    corporate_bonds_last_period = get_last_value(df, "社債", "前期末")
-    commercial_papers_last_period = get_last_value(df, "コマーシャルペーパー", "前期末")
-    lease_obligations_last_period = get_last_value(df, "リース債務", "前期末")
-    sum_last_period = sum(
-        [
-            long_term_debt_last_period,
-            short_term_debt_last_period,
-            corporate_bonds_last_period,
-            commercial_papers_last_period,
-            lease_obligations_last_period,
-            long_term_debt_within_1year_last_period,
-        ]
-    )
-
-    interest_bearing_debt: InterestBearingDebt = {
-        "short_term_debt": [
-            short_term_debt_last_period + long_term_debt_within_1year_last_period,
-            short_term_debt + long_term_debt_within_1year,
-        ],
-        "long_term_debt": [long_term_debt_last_period, long_term_debt],
-        "corporate_bonds": [corporate_bonds_last_period, corporate_bonds],
-        "commercial_papers": [commercial_papers_last_period, commercial_papers],
-        "lease_obligations": [lease_obligations_last_period, lease_obligations],
-        "interest_bearing_debt_sum": [sum_last_period, sum_current_period],
+        for item_name in interest_bearing_debt_item_names
     }
+
+    interest_bearing_debt["sum"] = [
+        sum([value[0] for value in interest_bearing_debt.values()]),
+        sum([value[1] for value in interest_bearing_debt.values()]),
+    ]
+
     return interest_bearing_debt
 
 
 def get_net_working_capital(df) -> NetOperatingCapital:
-    sales_receivables: SalesReceivables = {
-        "accounts_receivables": [
-            get_last_value(df, "売掛金", "前期"),
-            get_last_value(df, "売掛金", "当期"),
-        ],
-        "electronic_records_receivables": [
-            get_last_value(df, "電子記録債務", "前期"),
-            get_last_value(df, "電子記録債務", "当期"),
-        ],
-        "receivable_notes": [
-            get_last_value(df, "受取手形", "前期"),
-            get_last_value(df, "受取手形", "当期"),
-        ],
-        "contract_assets": [
-            get_last_value(df, "契約資産", "前期"),
-            get_last_value(df, "契約資産", "当期"),
-        ],
-        "other_current_assets": [
-            get_last_value(df, "その他、流動資産", "前期"),
-            get_last_value(df, "その他、流動資産", "当期"),
-        ],
+    # 重複項目が発生するため、項目名からsetを取得
+    sales_receivables_item_names = set(
+        [get_item_name(df, x, "当期") for x in sales_receivables_items]
+    )
+    inventories_item_names = set(
+        [get_item_name(df, x, "当期") for x in inventories_items]
+    )
+    purchase_debt_item_names = set(
+        [get_item_name(df, x, "当期") for x in purchase_debt_items]
+    )
+    sales_receivables = {
+        item_name: [
+            get_last_value(df, item_name, "前期"),
+            get_last_value(df, item_name, "当期"),
+        ]
+        for item_name in sales_receivables_item_names
     }
-    inventories: Inventory = {
-        "merchandise_or_products": [
-            get_last_value(df, "商品及び製品", "前期"),
-            get_last_value(df, "商品及び製品", "当期"),
-        ],
-        "work_in_process": [
-            get_last_value(df, "仕掛品", "前期"),
-            get_last_value(df, "仕掛品", "当期"),
-        ],
-        "raw_materials": [
-            get_last_value(df, "原材料及び貯蔵品", "前期"),
-            get_last_value(df, "原材料及び貯蔵品", "当期"),
-        ],
+    inventories = {
+        item_name: [
+            get_last_value(df, item_name, "前期"),
+            get_last_value(df, item_name, "当期"),
+        ]
+        for item_name in inventories_item_names
     }
-    purchase_debt: PurchaseDebt = {
-        "trade_payables": [
-            get_last_value(df, "支払手形及び買掛金", "前期"),
-            get_last_value(df, "支払手形及び買掛金", "当期"),
-        ],
-        "unpaid_expenses": [
-            get_last_value(df, "未払費用", "前期"),
-            get_last_value(df, "未払費用", "当期"),
-        ],
-        "unpaid_money": [
-            get_last_value(df, "未払金", "前期"),
-            get_last_value(df, "未払金", "当期"),
-        ],
-        "electronic_records_debt": [
-            get_last_value(df, "電子記録債務", "前期"),
-            get_last_value(df, "電子記録債務", "当期"),
-        ],
-        "contract_liabilities": [
-            get_last_value(df, "契約負債", "前期"),
-            get_last_value(df, "契約負債", "当期"),
-        ],
-        "other_current_liabilities": [
-            get_last_value(df, "その他、流動負債", "前期"),
-            get_last_value(df, "その他、流動負債", "当期"),
-        ],
+    purchase_debt = {
+        item_name: [
+            get_last_value(df, item_name, "前期"),
+            get_last_value(df, item_name, "当期"),
+        ]
+        for item_name in purchase_debt_item_names
     }
 
     net_working_capital: NetOperatingCapital = {
@@ -339,7 +330,7 @@ def extract_and_process_data(df):
         "ROIC(NOPLAT/投下資本)": calculate_roic(
             effective_tax_rates,
             financial_summary["operating_profits"],
-            interest_bearing_debt["interest_bearing_debt_sum"],
+            interest_bearing_debt["sum"],
         ),
         "BPS": get_last_value(df, "純資産額", "当期末") / number_of_stock,
         "": "",
@@ -353,10 +344,8 @@ def extract_and_process_data(df):
         "有利子負債": "",
         **interest_bearing_debt,
         "純有利子負債": [
-            idle_assets["現金及び預金"][0]
-            - interest_bearing_debt["interest_bearing_debt_sum"][0],
-            idle_assets["現金及び預金"][1]
-            - interest_bearing_debt["interest_bearing_debt_sum"][1],
+            idle_assets["現金及び預金"][0] - interest_bearing_debt["sum"][0],
+            idle_assets["現金及び預金"][1] - interest_bearing_debt["sum"][1],
         ],
     }
 
