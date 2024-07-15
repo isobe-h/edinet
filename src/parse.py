@@ -51,6 +51,7 @@
  """
 
 import csv
+import re
 
 import pandas as pd
 
@@ -293,8 +294,43 @@ def calculate_roic(
     ]
 
 
+# 借入利率を取得
+def calculate_weighted_average_interest_rate(text_data):
+    # 更新された正規表現パターン
+    items = (
+        "短期借入金",
+        "長期借入金",
+        "１年以内に返済予定の長期借入金",
+        "１年以内返済予定のリース債務",
+        "リース債務",
+    )
+    rate_pattern = r"(\d\.\d)"
+    rate = 0.0
+    divided = re.split(r"－", text_data)  # 項目ごとに分割
+    # lengthが0の項目を削除
+    divided = [x for x in divided if len(x) > 0]
+    for item in items:
+        # 項目名を含む行を取得
+        for line in divided:
+            if item in line:
+                # rateにマッチする部分を取得して切り取る
+                match = re.search(rate_pattern, line)
+                if match:
+                    rate = float(match.group(1))
+                    break
+    return rate
+
+
 def extract_and_process_data(df):
     bs: str = df.loc[df["項目名"] == "連結貸借対照表 [テキストブロック]", "値"].iloc[0]
+    # 借入金明細
+    debt_detail = str(
+        df.loc[
+            df["項目名"] == "借入金等明細表、連結財務諸表 [テキストブロック]", "値"
+        ].iloc[-1]
+    )
+    debt_rate = calculate_weighted_average_interest_rate(debt_detail)
+
     financial_summary = get_financial_summary(df)
     interest_bearing_debt = calc_interest_bearing_debt(df)
     net_working_capital = get_net_working_capital(df)
@@ -347,6 +383,7 @@ def extract_and_process_data(df):
             idle_assets["現金及び預金"][0] - interest_bearing_debt["sum"][0],
             idle_assets["現金及び預金"][1] - interest_bearing_debt["sum"][1],
         ],
+        "債権者コスト（要修正）": debt_rate,
     }
 
 
@@ -392,7 +429,6 @@ def format_dict_values(data):
     elif isinstance(data, list):
         # リストの要素をカンマ区切りで整形
         return ", ".join(data)
-
 
 if __name__ == "__main__":
     path = "/Users/alucard/edinetapi/processed_csv/ｓａｎｔｅｃ　Ｈｏｌｄｉｎｇｓ株式会社_S100TOES_有価証券報告書－第45期20230401－20240331.csv"
