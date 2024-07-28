@@ -4,7 +4,7 @@ import pandas as pd
 
 # 現在のディレクトリの上の階層
 parent_dir = os.getcwd()
-print(parent_dir)
+
 # 前処理前のcsvフォルダのパス
 csv_folder = os.path.join(parent_dir, "csv")
 # 前処理済みのcsvフォルダのパス
@@ -42,7 +42,6 @@ def preprocess_csv(path: str):
     company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
     # 不要な列を削除
     df = remove_unnecessary_columns(df)
-    print(df)
     # processed_csv_folderが存在しない場合は作成
     if not os.path.exists(processed_csv_folder):
         os.makedirs(processed_csv_folder)
@@ -54,6 +53,7 @@ def preprocess_csv(path: str):
         encoding="utf-8",
     )
     return df
+
 
 if __name__ == "__main__":
     # processed_csvフォルダ下のcsvファイルを読み込み、データを処理する
