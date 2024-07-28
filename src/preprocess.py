@@ -22,11 +22,10 @@ def remove_unnecessary_columns(df):
     ).dropna(subset=["項目名"])
     # 相対年度の列が、terms_regexに一致する行のみを抽出
     df = df[df["相対年度"].str.contains(term_regex)]
-    df = df[df["連結・個別"] != "個別"]
-    df = df.drop(columns=["連結・個別"])
     # 項目名の列内の"、経営指標等"のを削除
     # 総資産額、経営指標等　→　総資産額
     df["項目名"] = df["項目名"].str.replace("、経営指標等", "")
+    #
     # # '項目名'が'所有株式数'から始まる行から、最初の'現金及び預金'の前の行までを削除
     # # 例：所有株式数（単元）－政府及び地方公共団体
     # start_index = df[df["項目名"].str.startswith("所有株式数", na=False)].index[0]
@@ -43,6 +42,7 @@ def preprocess_csv(path: str):
     company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
     # 不要な列を削除
     df = remove_unnecessary_columns(df)
+    print(df)
     # processed_csv_folderが存在しない場合は作成
     if not os.path.exists(processed_csv_folder):
         os.makedirs(processed_csv_folder)
@@ -54,3 +54,20 @@ def preprocess_csv(path: str):
         encoding="utf-8",
     )
     return df
+
+if __name__ == "__main__":
+    # processed_csvフォルダ下のcsvファイルを読み込み、データを処理する
+    directory = os.path.join(os.getcwd(), "csv")
+    files = os.listdir(directory)
+    for i, file in enumerate(files):
+        print(f"{i}: {file}")
+    file_number = int(input("処理したいファイルを選択してください: "))
+    path = os.path.join(directory, files[file_number])
+    df = pd.read_csv(path)
+    company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
+    df = remove_unnecessary_columns(df)
+    df.to_csv(
+        os.path.join(processed_csv_folder, company_name + "_" + files[file_number]),
+        index=False,
+        encoding="utf-8",
+    )

@@ -14,12 +14,12 @@ DOC_LIST_URL = BASE_URL + ".json"
 
 def fetch_annual_report(doc_id: str):
     """書類取得APIを使って書類をダウンロードする
-        docID (str): 書類管理番号
-        type (str): 1:提出本文書及び監査報告書、2:PDF、3:代替書面・添付文書、
-                    4:英文ファイル、5:CSV
+                                                                    docID (str): 書類管理番号
+                                                                    type (str): 1:提出本文書及び監査報告書、2:PDF、3:代替書面・添付文書、
+                                                                                                                                                                                                                                                                    4:英文ファイル、5:CSV
 
     Returns:
-        bytes: ダウンロードしたファイルのバイナリデータ
+                                                                    bytes: ダウンロードしたファイルのバイナリデータ
     """
     doc_parameter = {"type": 5, "Subscription-Key": API_KEY}
     response = requests.get(f"{BASE_URL}/{doc_id}", params=doc_parameter)
@@ -29,7 +29,9 @@ def fetch_annual_report(doc_id: str):
     return response.content
 
 
-def search_annual_reports_by_term(start_date, end_date) -> list[ReportProperties]:
+def search_annual_reports_by_term_and_word(
+    start_date, end_date, search_word: str
+) -> list[ReportProperties]:
     current_date = start_date
     annual_securities_reports = []
 
@@ -42,26 +44,29 @@ def search_annual_reports_by_term(start_date, end_date) -> list[ReportProperties
         }
         result = requests.get(DOC_LIST_URL, doc_list_parameter).json()
 
-        if "results" in result:
-            df = pd.DataFrame(result["results"])
-            for _, row in df.iterrows():
-                description = row.get("docDescription")  # 書類の説明
-                docId = row.get("docID")  # 書類管理番号
-                secCode = row.get("secCode")  # 提出者証券コード
-                filerName = row.get("filerName")  # 提出者名
-                if description is None or docId is None or secCode is None:
-                    continue
-                if "訂正有価証券報告書" in str(description) or "受益証券" in str(
-                    description
-                ):
-                    continue
-                if "有価証券報告書" in str(description):
-                    report_info = {
-                        "docID": docId,
-                        "secCode": secCode,
-                        "docDescription": description,
-                        "filerName": filerName,
-                    }
+        if "results" not in result:
+            continue
+
+        df = pd.DataFrame(result["results"])
+        for _, row in df.iterrows():
+            description = row.get("docDescription")  # 書類の説明
+            docId = row.get("docID")  # 書類管理番号
+            secCode = row.get("secCode")  # 提出者証券コード
+            filerName = row.get("filerName")  # 提出者名
+            if description is None or docId is None or secCode is None:
+                continue
+            if "訂正有価証券報告書" in str(description) or "受益証券" in str(
+                description
+            ):
+                continue
+            if "有価証券報告書" in str(description):
+                report_info = {
+                    "docID": docId,
+                    "secCode": secCode,
+                    "docDescription": description,
+                    "filerName": filerName,
+                }
+                if search_word == "" or (search_word in filerName):
                     annual_securities_reports.append(report_info)
 
         print("wait for 2 seconds")
