@@ -12,13 +12,13 @@ from calculate import (
     calculate_roic,
     calculate_weighted_average_cost,
 )
+from df_utilities import get_first_value_by_name, get_float_value_by_name, get_item_name
 from type import (
     FinancialSumary,
     InterestBearingDebt,
     NetOperatingCapital,
     japanese_dict,
 )
-from utilities import get_first_value, get_item_name, get_item_number_value
 
 term_regex = r"当期末?|前期末?"
 TAX_RATE = 0.3
@@ -69,15 +69,13 @@ def calc_interest_bearing_debt(df) -> InterestBearingDebt:
             if get_item_name(df, x, "当期") != ""
         ]
     )
-    print(interest_bearing_debt_item_names)
     interest_bearing_debt = {
         item_name: [
-            get_item_number_value(df, item_name, "前期末"),
-            get_item_number_value(df, item_name, "当期末"),
+            get_float_value_by_name(df, item_name, "前期末"),
+            get_float_value_by_name(df, item_name, "当期末"),
         ]
         for item_name in interest_bearing_debt_item_names
     }
-    print(interest_bearing_debt)
     interest_bearing_debt["sum_of_interest_bearing_debt"] = [
         sum([value[0] for value in interest_bearing_debt.values()]),
         sum([value[1] for value in interest_bearing_debt.values()]),
@@ -111,22 +109,22 @@ def get_net_operating_capital(df) -> NetOperatingCapital:
     )
     sales_receivables = {
         item_name: [
-            get_item_number_value(df, item_name, "前期"),
-            get_item_number_value(df, item_name, "当期"),
+            get_float_value_by_name(df, item_name, "前期"),
+            get_float_value_by_name(df, item_name, "当期"),
         ]
         for item_name in sales_receivables_item_names
     }
     inventories = {
         item_name: [
-            get_item_number_value(df, item_name, "前期"),
-            get_item_number_value(df, item_name, "当期"),
+            get_float_value_by_name(df, item_name, "前期"),
+            get_float_value_by_name(df, item_name, "当期"),
         ]
         for item_name in inventories_item_names
     }
     purchase_debt = {
         item_name: [
-            get_item_number_value(df, item_name, "前期"),
-            get_item_number_value(df, item_name, "当期"),
+            get_float_value_by_name(df, item_name, "前期"),
+            get_float_value_by_name(df, item_name, "当期"),
         ]
         for item_name in purchase_debt_item_names
     }
@@ -164,12 +162,12 @@ def get_idle_assets(df):
 
     return {
         "投資有価証券": [
-            get_item_number_value(df, "投資有価証券", "前期"),
-            get_item_number_value(df, "投資有価証券", "当期"),
+            get_float_value_by_name(df, "投資有価証券", "前期"),
+            get_float_value_by_name(df, "投資有価証券", "当期"),
         ],
         "現金及び預金": [
-            get_item_number_value(df, "現金及び預金", "前期"),
-            get_item_number_value(df, "現金及び預金", "当期"),
+            get_float_value_by_name(df, "現金及び預金", "前期"),
+            get_float_value_by_name(df, "現金及び預金", "当期"),
         ],
     }
 
@@ -185,53 +183,53 @@ def get_money_unit(bs: str) -> int:
 
 def get_financial_summary(df) -> FinancialSumary:
     operating_profits = [
-        get_item_number_value(df, "営業利益又は営業損失（△）", "前期"),
-        get_item_number_value(df, "営業利益又は営業損失（△）", "当期"),
+        get_float_value_by_name(df, "営業利益又は営業損失（△）", "前期"),
+        get_float_value_by_name(df, "営業利益又は営業損失（△）", "当期"),
     ]
     nopat = [
         round(float(operating_profits[0]) * TAX_COEFFICIENT, 2),
         round(float(operating_profits[1]) * TAX_COEFFICIENT, 2),
     ]
     revenues = [
-        get_item_number_value(df, "売上高", "前期"),
-        get_item_number_value(df, "売上高", "当期"),
+        get_float_value_by_name(df, "売上高", "前期"),
+        get_float_value_by_name(df, "売上高", "当期"),
     ]
     # "売上原価
     cost_of_sales = [
         revenues[0]
-        - get_item_number_value(df, "売上総利益又は売上総損失（△）", "前期"),
+        - get_float_value_by_name(df, "売上総利益又は売上総損失（△）", "前期"),
         revenues[1]
-        - get_item_number_value(df, "売上総利益又は売上総損失（△）", "当期"),
+        - get_float_value_by_name(df, "売上総利益又は売上総損失（△）", "当期"),
     ]
     # 一般管理費及び販売費
     selling_general_and_administrative_expenses = [
-        get_item_number_value(df, "販売費及び一般管理費", "前期"),
-        get_item_number_value(df, "販売費及び一般管理費", "当期"),
+        get_float_value_by_name(df, "販売費及び一般管理費", "前期"),
+        get_float_value_by_name(df, "販売費及び一般管理費", "当期"),
     ]
     # 純利益
     net_income = [
-        get_item_number_value(df, "当期純利益又は当期純損失（△）", "前期"),
-        get_item_number_value(df, "当期純利益又は当期純損失（△）", "当期"),
+        get_float_value_by_name(df, "当期純利益又は当期純損失（△）", "前期"),
+        get_float_value_by_name(df, "当期純利益又は当期純損失（△）", "当期"),
     ]
     # 潜在株式調整後１株当たり当期純利益
     net_income_per_share_adjusted_for_potential_stock = [
-        get_item_number_value(df, "潜在株式調整後1株当たり当期純利益", "前期"),
-        get_item_number_value(df, "潜在株式調整後1株当たり当期純利益", "当期"),
+        get_float_value_by_name(df, "潜在株式調整後1株当たり当期純利益", "前期"),
+        get_float_value_by_name(df, "潜在株式調整後1株当たり当期純利益", "当期"),
     ]
     # 潜在株式がない場合
     if net_income_per_share_adjusted_for_potential_stock[0] == 0:
         net_income_per_share_adjusted_for_potential_stock = [
-            get_item_number_value(
+            get_float_value_by_name(
                 df, "１株当たり当期純利益又は当期純損失（△）", "前期"
             ),
-            get_item_number_value(
+            get_float_value_by_name(
                 df, "１株当たり当期純利益又は当期純損失（△）", "当期"
             ),
         ]
     # 総資産
     total_assets = [
-        get_item_number_value(df, "総資産額", "前期"),
-        get_item_number_value(df, "総資産額", "当期"),
+        get_float_value_by_name(df, "総資産額", "前期"),
+        get_float_value_by_name(df, "総資産額", "当期"),
     ]
     return {
         "revenues": revenues,
@@ -251,16 +249,16 @@ def get_financial_summary(df) -> FinancialSumary:
         ],
         "nopat": nopat,
         "deprecations": [
-            get_item_number_value(
+            get_float_value_by_name(
                 df, "減価償却費、営業活動によるキャッシュ・フロー", "前期"
             ),
-            get_item_number_value(
+            get_float_value_by_name(
                 df, "減価償却費、営業活動によるキャッシュ・フロー", "当期"
             ),
         ],
         "capital_expenditure": [
             "-",
-            get_item_number_value(df, "設備投資額、設備投資等の概要", "当期"),
+            get_float_value_by_name(df, "設備投資額、設備投資等の概要", "当期"),
         ],
         "net_income": net_income,
         "net_income_per_share_adjusted_for_potential_stock": net_income_per_share_adjusted_for_potential_stock,
@@ -274,26 +272,28 @@ def extract_and_process_data(df, start_year, end_year):
     consolidated_debt_detail_title = "借入金等明細表、連結財務諸表 [テキストブロック]"
     debt_detail_title = "借入金等明細表、財務諸表 [テキストブロック]"
     # 連結貸借対照表を探して、なければ単体貸借対照表を探す
-    bs = get_first_value(df, consolidated_bs_title, "当期")
+    bs = get_first_value_by_name(df, consolidated_bs_title, "当期")
     if bs == "":
-        bs = get_first_value(df, bs_title, "当期")
+        bs = get_first_value_by_name(df, bs_title, "当期")
         # 見つからない場合はエラー
         if bs == "":
             raise Exception("貸借対照表が見つかりませんでした")
 
     # 借入金等明細表、連結財務諸表 [テキストブロック]を探して、なければ単体財務諸表を探す
 
-    debt_detail = get_first_value(df, consolidated_debt_detail_title, "当期")
+    debt_detail = get_first_value_by_name(df, consolidated_debt_detail_title, "当期")
     if debt_detail == "":
-        debt_detail = get_first_value(df, debt_detail_title, "当期")
+        debt_detail = get_first_value_by_name(df, debt_detail_title, "当期")
     debt_rate = calculate_weighted_average_cost(debt_detail)
     financial_summary = get_financial_summary(df)
     interest_bearing_debt = calc_interest_bearing_debt(df)
     net_working_capital = get_net_operating_capital(df)
     # money_unit = get_money_unit(bs)
     idle_assets = get_idle_assets(df)
-    number_of_stock = get_item_number_value(df, "発行済株式総数（普通株式）", "当期末")
-    number_of_company_stock = get_item_number_value(
+    number_of_stock = get_float_value_by_name(
+        df, "発行済株式総数（普通株式）", "当期末"
+    )
+    number_of_company_stock = get_float_value_by_name(
         df, "自己名義所有株式数（株）、自己株式等", "当期末"
     )
 
@@ -306,47 +306,43 @@ def extract_and_process_data(df, start_year, end_year):
 
     effective_tax_rates = [
         calculate_effective_tax_rate(
-            get_item_number_value(df, "法人税等", "前期"),
-            get_item_number_value(
+            get_float_value_by_name(df, "法人税等", "前期"),
+            get_float_value_by_name(
                 df, "税引前当期純利益又は税引前当期純損失（△）", "前期"
             ),
         ),
         calculate_effective_tax_rate(
-            get_item_number_value(df, "法人税等", "当期"),
-            get_item_number_value(
+            get_float_value_by_name(df, "法人税等", "当期"),
+            get_float_value_by_name(
                 df, "税引前当期純利益又は税引前当期純損失（△）", "当期"
             ),
         ),
     ]
     noplats = (
-        float(financial_summary["operating_incomes"][0]) * (1 - effective_tax_rates[0]),
-        float(financial_summary["operating_incomes"][1]) * (1 - effective_tax_rates[1]),
+        float(financial_summary["operating_profits"][0]) * (1 - effective_tax_rates[0]),
+        float(financial_summary["operating_profits"][1]) * (1 - effective_tax_rates[1]),
     )
     shareholders_equity = [
-        get_item_number_value(df, "株主資本", "前期"),
-        get_item_number_value(df, "株主資本", "当期"),
+        get_float_value_by_name(df, "株主資本", "前期"),
+        get_float_value_by_name(df, "株主資本", "当期"),
     ]
     invested_capitals = calculate_invested_capital(
         shareholders_equity, interest_bearing_debt["sum_of_interest_bearing_debt"]
     )
     bps = [
-        get_item_number_value(df, "１株当たり純資産額", "前期"),
-        get_item_number_value(df, "１株当たり純資産額", "当期末"),
+        get_float_value_by_name(df, "１株当たり純資産額", "前期"),
+        get_float_value_by_name(df, "１株当たり純資産額", "当期末"),
     ]
     tangible_fixed_assets = [
-        get_item_number_value(df, "有形固定資産", "前期"),
-        get_item_number_value(df, "有形固定資産", "当期"),
+        get_float_value_by_name(df, "有形固定資産", "前期"),
+        get_float_value_by_name(df, "有形固定資産", "当期"),
     ]
     net_trading_fixed_assets = [
         tangible_fixed_assets[0]
-        - get_item_number_value(df, "減価償却累計額、その他、有形固定資産", "前期"),
+        - get_float_value_by_name(df, "減価償却累計額、その他、有形固定資産", "前期"),
         tangible_fixed_assets[1]
-        - get_item_number_value(df, "減価償却累計額、その他、有形固定資産", "当期"),
+        - get_float_value_by_name(df, "減価償却累計額、その他、有形固定資産", "当期"),
     ]
-    print(get_item_number_value(df, "有形固定資産", "前期"))
-    print(get_item_number_value(df, "減価償却累計額、その他、有形固定資産", "前期"))
-    print(get_item_number_value(df, "有形固定資産", "当期"))
-    print(get_item_number_value(df, "減価償却累計額、その他、有形固定資産", "当期"))
     return {
         # "単位": str(money_unit),
         "年": [start_year, end_year],
@@ -383,7 +379,7 @@ def extract_and_process_data(df, start_year, end_year):
         "販売費及び一般管理費：販売費及び一般管理費/売上高": [
             "-",
             calculate_ratio(
-                get_item_number_value(df, "販売費及び一般管理費", "当期"),
+                get_float_value_by_name(df, "販売費及び一般管理費", "当期"),
                 financial_summary["revenues"][1],
             ),
         ],
