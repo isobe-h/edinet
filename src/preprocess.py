@@ -2,19 +2,12 @@ import os
 
 import pandas as pd
 
-# 現在のディレクトリの上の階層
-parent_dir = os.getcwd()
-
-# 前処理前のcsvフォルダのパス
-csv_folder = os.path.join(parent_dir, "csv")
-# 前処理済みのcsvフォルダのパス
-processed_csv_folder = os.path.join(parent_dir, "processed_csv")
-
+from file_utils import PREPROCESSED_CSV_DIR_NAME, ROW_CSV_DIR_NAME
 
 term_regex = r"当期末?|前期末?"
 
 
-def remove_unnecessary_columns(df):
+def remove_unnecessary_columns(df) -> pd.DataFrame:
     # dfから要素ID、コンテキストID,ユニットID列を削除
     # 相対年度の列が、'当期'　以外の行は削除
     df = df.drop(
@@ -34,40 +27,20 @@ def remove_unnecessary_columns(df):
     return df
 
 
-def preprocess_csv(path: str):
-    # csvファイルを読み込む
-    df = pd.read_csv(path)
-    # jpcrp_cor:CompanyNameCoverPage,会社名、表紙,FilingDateInstant,提出日時点,その他,時点,－,－,ｓａｎｔｅｃ　Ｈｏｌｄｉｎｇｓ株式会社
-    # の行から、値の列の値を取得
-    company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
-    # 不要な列を削除
+def preprocess_csv(saved_path: str):
+    # saved_path: 前処理前のcsvファイルのパス
+    # 	例：	/Users/alucard/edinetapi/EDINET/row_csv/62550/株式会社エヌ・ピー・シー_有価証券報告書－第31期20220901－20230831.csv
+    df = pd.read_csv(saved_path)
     df = remove_unnecessary_columns(df)
-    # processed_csv_folderが存在しない場合は作成
-    if not os.path.exists(processed_csv_folder):
-        os.makedirs(processed_csv_folder)
-
+    # 保存するpathはrow_csvフォルダのパスからprocessed_csvフォルダのパスに変更
+    preprocessed_path = saved_path.replace(ROW_CSV_DIR_NAME, PREPROCESSED_CSV_DIR_NAME)
+    # パスがなければ作成
+    if not os.path.exists(os.path.dirname(preprocessed_path)):
+        os.makedirs(os.path.dirname(preprocessed_path))
     # 前処理済みのcsvファイルを保存
     df.to_csv(
-        os.path.join(processed_csv_folder, company_name + "_" + path.split("/")[-1]),
+        preprocessed_path,
         index=False,
         encoding="utf-8",
     )
-    return df
-
-
-if __name__ == "__main__":
-    # processed_csvフォルダ下のcsvファイルを読み込み、データを処理する
-    directory = os.path.join(os.getcwd(), "csv")
-    files = os.listdir(directory)
-    for i, file in enumerate(files):
-        print(f"{i}: {file}")
-    file_number = int(input("処理したいファイルを選択してください: "))
-    path = os.path.join(directory, files[file_number])
-    df = pd.read_csv(path)
-    company_name = df.loc[df["項目名"] == "会社名、表紙", "値"].iloc[0]
-    df = remove_unnecessary_columns(df)
-    df.to_csv(
-        os.path.join(processed_csv_folder, company_name + "_" + files[file_number]),
-        index=False,
-        encoding="utf-8",
-    )
+    return preprocessed_path

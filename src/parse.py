@@ -13,6 +13,7 @@ from calculate import (
     calculate_weighted_average_cost,
 )
 from df_utilities import get_first_value_by_name, get_float_value_by_name, get_item_name
+from file_utils import PREPROCESSED_CSV_DIR_NAME, RESULT_CSV_DIR_NAME
 from type import (
     FinancialSumary,
     InterestBearingDebt,
@@ -23,6 +24,7 @@ from type import (
 term_regex = r"当期末?|前期末?"
 TAX_RATE = 0.3
 TAX_COEFFICIENT = 1 - TAX_RATE
+OUTPUT_PATH = os.path.join(os.getcwd(), "output")
 # 売上債権
 sales_receivables_items = (
     "売掛金",
@@ -417,12 +419,7 @@ def extract_and_process_data(df, start_year, end_year):
                 financial_summary["revenues"][1],
             ),
         ],
-        "投下資本(有利子負債＋株主資本)": [
-            shareholders_equity[1]
-            + interest_bearing_debt["sum_of_interest_bearing_debt"][1],
-            shareholders_equity[0]
-            + interest_bearing_debt["sum_of_interest_bearing_debt"][0],
-        ],
+        "投下資本(有利子負債＋株主資本)": invested_capitals,
         "営業利益率": [
             calculate_ratio(
                 financial_summary["operating_profits"][0],
@@ -433,16 +430,34 @@ def extract_and_process_data(df, start_year, end_year):
                 financial_summary["revenues"][1],
             ),
         ],
-        "投下資本回転率": [
+        "税引き後営業利益率(税率３０％)": [
+            calculate_ratio(
+                financial_summary["nopat"][0],
+                financial_summary["revenues"][0],
+            ),
+            calculate_ratio(
+                financial_summary["nopat"][1],
+                financial_summary["revenues"][1],
+            ),
+        ],
+        "税引き後営業利益立(実効税率)": [
+            calculate_ratio(
+                noplats[0],
+                financial_summary["revenues"][0],
+            ),
+            calculate_ratio(
+                noplats[1],
+                financial_summary["revenues"][1],
+            ),
+        ],
+        "投下資本回転率(税率３０％)": [
             calculate_ratio(
                 financial_summary["revenues"][0],
-                shareholders_equity[0]
-                + interest_bearing_debt["sum_of_interest_bearing_debt"][0],
+                invested_capitals[0],
             ),
             calculate_ratio(
                 financial_summary["revenues"][1],
-                shareholders_equity[1]
-                + interest_bearing_debt["sum_of_interest_bearing_debt"][1],
+                invested_capitals[1],
             ),
         ],
         "NOPLAT": noplats,
@@ -469,9 +484,12 @@ def extract_and_process_data(df, start_year, end_year):
     }
 
 
-def export_to_csv(data, path):
+def export_to_csv(data, save_path):
+    if not os.path.exists(os.path.dirname(save_path)):
+        os.makedirs(os.path.dirname(save_path))
+
     # utf-8-sigにすることで、Excelで開いた際に文字化けを防ぐ
-    with open(path, "w", encoding="utf-8-sig", newline="") as file:
+    with open(save_path, "w", encoding="utf-8-sig", newline="") as file:
         writer = csv.writer(file)
 
         for key, values in data.items():
@@ -532,13 +550,18 @@ if __name__ == "__main__":
     end_year = result[1][:4]
     df = pd.read_csv(path)
     result = extract_and_process_data(df, start_year, end_year)
-    export_to_csv(result, files[file_number])
+    new_path = os.path.join(OUTPUT_PATH, path.split("/")[-1])
+    export_to_csv(result, new_path)
 
 
-def parse_csv(path, filename):
-    result = re.findall(r"\d{8}", path)
-    start_year = result[0][:4]
-    end_year = result[1][:4]
-    df = pd.read_csv(path, encoding="utf-8")
+def parse_csv(preprocessed_path):
+    dates = re.findall(r"\d{8}", preprocessed_path)
+    start_year = dates[0][:4]
+    end_year = dates[1][:4]
+    df = pd.read_csv(preprocessed_path, encoding="utf-8")
     result = extract_and_process_data(df, start_year, end_year)
-    export_to_csv(result, filename)
+    print(preprocessed_path)
+    save_path = preprocessed_path.replace(
+        PREPROCESSED_CSV_DIR_NAME, RESULT_CSV_DIR_NAME
+    )
+    export_to_csv(result, save_path)

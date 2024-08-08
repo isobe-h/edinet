@@ -21,15 +21,15 @@ def search_annual_report_by_date_and_seccode(
     df = pd.DataFrame(result["results"])
     df_filtered = df[df["secCode"].notna()]
     report_type = str(ReportType.ANNUAL_SECURITIES_REPORT.value)
-    print(df_filtered["secCode"].unique())
+    # print(df_filtered["secCode"].unique())
     df_filtered = df_filtered.query(
         "docTypeCode == @report_type and secCode == @secCode",
     )
     assert len(df_filtered) == 1
-    return df_filtered[["docID", "secCode", "docDescription", "filerName"]]
+    return df_filtered
 
 
-def fetch_and_save_annual_report(df: pd.DataFrame):
+def fetch_and_save_annual_report(df: pd.DataFrame) -> str:
     filerName = sanitize_filename(df["filerName"].values[0])
     docDescription = sanitize_filename(df["docDescription"].values[0])
     directory_name = df["secCode"].values[0]
@@ -40,7 +40,7 @@ def fetch_and_save_annual_report(df: pd.DataFrame):
         print(f"docID: {selected_doc_id} のファイルのダウンロードに失敗しました。")
         exit(1)
     try:
-        save_doc_from_zip(zip_file, directory_name, title)
+        return save_doc_from_zip(zip_file, directory_name, title)
     except zipfile.BadZipFile:
         print(f"docID: {selected_doc_id} のファイルはZIPファイルではありません。")
         exit(1)
@@ -51,9 +51,9 @@ def generate_report_from_single_report(date: str, sec_code: str):
     start_date = str(datetime.strptime(date, "%Y%m%d"))
     df = search_annual_report_by_date_and_seccode(start_date, 120, sec_code)
     df.head()
-    fetch_and_save_annual_report(df)
-    # filename = preprocess_csv(save_path)
-    # parse_csv(save_path, filename)
+    saved_path = fetch_and_save_annual_report(df)
+    preprocessed_path = preprocess_csv(saved_path)
+    parse_csv(preprocessed_path)
 
 
 # 過去10年分のデータを取得する(今日から数えて)
