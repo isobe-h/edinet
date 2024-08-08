@@ -1,4 +1,5 @@
 import os
+import re
 import zipfile
 from datetime import datetime
 
@@ -32,15 +33,17 @@ def search_annual_report_by_date_and_seccode(
 def fetch_and_save_annual_report(df: pd.DataFrame) -> str:
     filerName = sanitize_filename(df["filerName"].values[0])
     docDescription = sanitize_filename(df["docDescription"].values[0])
-    directory_name = df["secCode"].values[0]
+    sec_code = df["secCode"].values[0]
     selected_doc_id = df["docID"].values[0]
+    dates = re.findall(r"\d{8}", docDescription)
+    end_year = dates[1][:4]
     title = f"{filerName}_{docDescription}.csv"
     zip_file = fetch_annual_report_by_docid(selected_doc_id)
     if zip_file is None:
         print(f"docID: {selected_doc_id} のファイルのダウンロードに失敗しました。")
         exit(1)
     try:
-        return save_doc_from_zip(zip_file, directory_name, title)
+        return save_doc_from_zip(zip_file, os.path.join(sec_code, end_year), title)
     except zipfile.BadZipFile:
         print(f"docID: {selected_doc_id} のファイルはZIPファイルではありません。")
         exit(1)
@@ -63,11 +66,12 @@ def generate_report_from_single_report(date: str, sec_code: str):
 
 if __name__ == "__main__":
     assert os.getenv("KEY")
-    which_input = questionary.select(
-        "どのように検索しますか？",
-        choices=["日付と証券コード"],
-    ).ask()
-    if which_input == "日付と証券コード":
-        date = input_date()
-        sec_code = input_sec_code()
-        generate_report_from_single_report(date, sec_code)
+    # which_input = questionary.select(
+    #     "どのように検索しますか？",
+    #     choices=["日付と証券コード"],
+    # ).ask()
+    # if which_input == "日付と証券コード":
+    #     date = input_date()
+    #     sec_code = input_sec_code()
+    #     generate_report_from_single_report(date, sec_code)
+    generate_report_from_single_report("20231130", "62550")

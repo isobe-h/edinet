@@ -1,8 +1,6 @@
-import os
-
 import pandas as pd
 
-from file_utils import PREPROCESSED_CSV_DIR_NAME, ROW_CSV_DIR_NAME
+from file_utils import PREPROCESSED_CSV_HEADER, ROW_CSV_HEADER
 
 term_regex = r"当期末?|前期末?"
 
@@ -33,10 +31,7 @@ def preprocess_csv(saved_path: str):
     df = pd.read_csv(saved_path)
     df = remove_unnecessary_columns(df)
     # 保存するpathはrow_csvフォルダのパスからprocessed_csvフォルダのパスに変更
-    preprocessed_path = saved_path.replace(ROW_CSV_DIR_NAME, PREPROCESSED_CSV_DIR_NAME)
-    # パスがなければ作成
-    if not os.path.exists(os.path.dirname(preprocessed_path)):
-        os.makedirs(os.path.dirname(preprocessed_path))
+    preprocessed_path = saved_path.replace(ROW_CSV_HEADER, PREPROCESSED_CSV_HEADER)
     # 前処理済みのcsvファイルを保存
     df.to_csv(
         preprocessed_path,

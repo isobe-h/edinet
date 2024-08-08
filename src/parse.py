@@ -13,7 +13,7 @@ from calculate import (
     calculate_weighted_average_cost,
 )
 from df_utilities import get_first_value_by_name, get_float_value_by_name, get_item_name
-from file_utils import PREPROCESSED_CSV_DIR_NAME, RESULT_CSV_DIR_NAME
+from file_utils import PREPROCESSED_CSV_HEADER
 from type import (
     FinancialSumary,
     InterestBearingDebt,
@@ -485,9 +485,6 @@ def extract_and_process_data(df, start_year, end_year):
 
 
 def export_to_csv(data, save_path):
-    if not os.path.exists(os.path.dirname(save_path)):
-        os.makedirs(os.path.dirname(save_path))
-
     # utf-8-sigにすることで、Excelで開いた際に文字化けを防ぐ
     with open(save_path, "w", encoding="utf-8-sig", newline="") as file:
         writer = csv.writer(file)
@@ -561,7 +558,5 @@ def parse_csv(preprocessed_path):
     df = pd.read_csv(preprocessed_path, encoding="utf-8")
     result = extract_and_process_data(df, start_year, end_year)
     print(preprocessed_path)
-    save_path = preprocessed_path.replace(
-        PREPROCESSED_CSV_DIR_NAME, RESULT_CSV_DIR_NAME
-    )
+    save_path = preprocessed_path.replace(PREPROCESSED_CSV_HEADER, "")
     export_to_csv(result, save_path)
