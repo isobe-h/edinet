@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TypedDict
 
 
@@ -60,6 +61,25 @@ class ReportProperties(TypedDict):
     secCode: str
     docDescription: str
     filerName: str
+
+
+# 120	有価証券報告書
+# 130	訂正有価証券報告書
+# 140	四半期報告書
+# 150	訂正四半期報告書
+# 160	半期報告書
+# 170	訂正半期報告書
+# 350	大量保有報告書
+# 360	訂正大量保有報告書
+class ReportType(Enum):
+    ANNUAL_SECURITIES_REPORT = 120
+    AMENDED_ANNUAL_SECURITIES_REPORT = 130
+    QUARTERLY_REPORT = 140
+    AMENDED_QUARTERLY_REPORT = 150
+    SEMI_ANNUAL_REPORT = 160
+    AMENDED_SEMI_ANNUAL_REPORT = 170
+    LARGE_HOLDING_REPORT = 350
+    AMENDED_LARGE_HOLDING_REPORT = 360
 
 
 japanese_dict = {
