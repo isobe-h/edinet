@@ -20,6 +20,7 @@ from type import (
     NetOperatingCapital,
     japanese_dict,
 )
+from utils import convert_to_thousand_separated, join_collection_with_commas
 
 term_regex = r"当期末?|前期末?"
 TAX_RATE = 0.3
@@ -507,48 +508,19 @@ def export_to_csv(data, save_path):
             else:
                 # リストや単一の値の場合、通常通りに処理
                 if isinstance(values, list):
-                    writer.writerow([japanese_label] + list(map(format_number, values)))
+                    writer.writerow(
+                        [japanese_label]
+                        + list(map(convert_to_thousand_separated, values))
+                    )
                 elif isinstance(values, tuple):
-                    writer.writerow([japanese_label] + list(map(format_number, values)))
+                    writer.writerow(
+                        [japanese_label]
+                        + list(map(convert_to_thousand_separated, values))
+                    )
                 else:
-                    writer.writerow([japanese_label, format_number(values)])
-
-
-# ３桁区切りの文字列に変換
-def format_number(number: float | str) -> str:
-    if isinstance(number, str):
-        return number
-    elif isinstance(number, int):
-        return "{:,}".format(number)
-    return "{:,.2f}".format(number)
-
-
-def format_dict_values(data):
-    if isinstance(data, dict):
-        # 辞書のキーと値をカンマ区切りで整形
-        return ", ".join([f"{key}: {value}" for key, value in data.items()])
-    elif isinstance(data, list):
-        # リストの要素をカンマ区切りで整形
-        return ", ".join(data)
-
-
-if __name__ == "__main__":
-    # processed_csvフォルダ下のcsvファイルを読み込み、データを処理する
-    directory = os.path.join(os.getcwd(), "processed_csv")
-    files = os.listdir(directory)
-    for i, file in enumerate(files):
-        print(f"{i}: {file}")
-    file_number = int(input("処理したいファイルを選択してください: "))
-    path = os.path.join(directory, files[file_number])
-    # 株式会社エヌ・ピー・シー_S100SDQ5_有価証券報告書－第31期20220901－20230831.csv
-    # から数字が8桁の文字列を取得し、その中から2022と2023を取得する
-    result = re.findall(r"\d{8}", path)
-    start_year = result[0][:4]
-    end_year = result[1][:4]
-    df = pd.read_csv(path)
-    result = extract_and_process_data(df, start_year, end_year)
-    new_path = os.path.join(OUTPUT_PATH, path.split("/")[-1])
-    export_to_csv(result, new_path)
+                    writer.writerow(
+                        [japanese_label, convert_to_thousand_separated(values)]
+                    )
 
 
 def parse_csv(preprocessed_path):

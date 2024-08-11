@@ -27,3 +27,12 @@ def input_sec_code():
             return search_word + "0"
         else:
             print("入力が不正です。4桁の数字を入力してください。")
+
+
+# ３桁区切りの文字列に変換
+def convert_to_thousand_separated(number: float | str) -> str:
+    if isinstance(number, str):
+        return number
+    elif isinstance(number, int):
+        return "{:,}".format(number)
+    return "{:,.2f}".format(number)
