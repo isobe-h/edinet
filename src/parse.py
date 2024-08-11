@@ -4,18 +4,11 @@ import re
 
 import pandas as pd
 
-from calculate import (
-    calculate_effective_tax_rate,
-    calculate_growth_ratio,
-    calculate_invested_capital,
-    calculate_ratio,
-    calculate_roic,
-    calculate_weighted_average_cost,
-)
+from calculate import calculate_growth_ratio, calculate_ratio
 from df_utilities import get_first_value_by_name, get_float_value_by_name, get_item_name
 from file_utils import PREPROCESSED_CSV_HEADER
 from type import (
-    FinancialSumary,
+    FinancialSummary,
     InterestBearingDebt,
     NetOperatingCapital,
     japanese_dict,
@@ -26,42 +19,6 @@ term_regex = r"当期末?|前期末?"
 TAX_RATE = 0.3
 TAX_COEFFICIENT = 1 - TAX_RATE
 OUTPUT_PATH = os.path.join(os.getcwd(), "output")
-# 売上債権
-sales_receivables_items = (
-    "売掛金",
-    "契約資産",
-    "前渡金",
-    "電子記録債権",
-    "受取手形",
-    "その他、流動資産",
-)
-# 棚卸資産
-inventories_items = ["商品及び製品", "仕掛品", "原材料及び貯蔵品"]
-# 仕入債務
-purchase_debt_items = (
-    "買掛金",
-    "支払手形",
-    "電子記録債務",
-    "未払費用",
-    "未払金",
-    "契約負債",
-    "前受金",
-    "その他、流動負債",
-)
-# 有利子負債
-interest_bearing_debt_items = (
-    "短期借入金",
-    "短期社債",
-    "コマーシャルペーパー",
-    "リース債務（流動負債）",
-    "１年内返済予定の長期借入金",
-    "長期借入金",
-    "社債",
-    "転換社債",
-    "新株予約権付転換社債",
-    "新株予約権付社債",
-    "リース債務（固定負債）",
-)
 
 
 def calc_interest_bearing_debt(df) -> InterestBearingDebt:
@@ -184,7 +141,7 @@ def get_money_unit(bs: str) -> int:
         raise Exception("単位が取得できませんでした")
 
 
-def get_financial_summary(df) -> FinancialSumary:
+def get_financial_summary(df) -> FinancialSummary:
     operating_profits = [
         get_float_value_by_name(df, "営業利益又は営業損失（△）", "前期"),
         get_float_value_by_name(df, "営業利益又は営業損失（△）", "当期"),
@@ -483,44 +440,6 @@ def extract_and_process_data(df, start_year, end_year):
         #     net_working_capital["未払金"][1], financial_summary["revenues"][1]
         # ),
     }
-
-
-def export_to_csv(data, save_path):
-    # utf-8-sigにすることで、Excelで開いた際に文字化けを防ぐ
-    with open(save_path, "w", encoding="utf-8-sig", newline="") as file:
-        writer = csv.writer(file)
-
-        for key, values in data.items():
-            # 日本語ラベルに変換、見つからない場合は元のキーを使用
-            japanese_label = japanese_dict.get(key, key)
-
-            if isinstance(values, dict):
-                # 辞書型の場合、各サブキーに対して新たな行を作成
-                for subkey, subvalues in values.items():
-                    sub_japanese_label = japanese_dict.get(subkey, subkey)
-                    # 値がリストであることを確認し、それぞれの要素を列として追加
-                    if isinstance(subvalues, list):
-                        writer.writerow(
-                            [japanese_label, sub_japanese_label] + subvalues
-                        )
-                    else:
-                        writer.writerow([japanese_label, sub_japanese_label, subvalues])
-            else:
-                # リストや単一の値の場合、通常通りに処理
-                if isinstance(values, list):
-                    writer.writerow(
-                        [japanese_label]
-                        + list(map(convert_to_thousand_separated, values))
-                    )
-                elif isinstance(values, tuple):
-                    writer.writerow(
-                        [japanese_label]
-                        + list(map(convert_to_thousand_separated, values))
-                    )
-                else:
-                    writer.writerow(
-                        [japanese_label, convert_to_thousand_separated(values)]
-                    )
 
 
 def parse_csv(preprocessed_path):

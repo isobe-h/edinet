@@ -7,8 +7,8 @@ import pandas as pd
 import questionary
 
 from fetch import fetch_annual_report_by_docid, fetch_doc_list
-from file_utils import save_doc_from_zip
-from parse import parse_csv
+from file_utils import PREPROCESSED_CSV_HEADER, export_df_to_csv, save_doc_from_zip
+from financial_data import FinancialDataProcessor
 from preprocess import preprocess_csv
 from type import ReportType
 from utils import input_date, input_sec_code, sanitize_filename
@@ -56,7 +56,11 @@ def generate_report_from_single_report(date: str, sec_code: str):
     df.head()
     saved_path = fetch_and_save_annual_report(df)
     preprocessed_path = preprocess_csv(saved_path)
-    parse_csv(preprocessed_path)
+    preprocess_df = pd.read_csv(preprocessed_path, encoding="utf-8")
+    year = start_date[:4]
+    result = FinancialDataProcessor(preprocess_df, year).get_report()
+    save_path = preprocessed_path.replace(PREPROCESSED_CSV_HEADER, "")
+    export_df_to_csv(result, save_path)
 
 
 # 過去10年分のデータを取得する(今日から数えて)
