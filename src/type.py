@@ -2,7 +2,7 @@ from enum import Enum
 from typing import TypedDict
 
 
-class FinancialSumary(TypedDict):
+class FinancialSummary(TypedDict):
     revenues: tuple[int]
     operating_profits: tuple[int]
     nopat: tuple[int]
