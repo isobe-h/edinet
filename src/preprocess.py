@@ -8,15 +8,15 @@ term_regex = r"当期末?|前期末?"
 def remove_unnecessary_columns(df) -> pd.DataFrame:
     # dfから要素ID、コンテキストID,ユニットID列を削除
     # 相対年度の列が、'当期'　以外の行は削除
-    df = df.drop(
-        columns=["要素ID", "コンテキストID", "ユニットID", "単位", "期間・時点"]
-    ).dropna(subset=["項目名"])
+    df = df[["項目名", "相対年度", "連結・個別", "値"]].dropna(subset=["項目名"])
     # 相対年度の列が、terms_regexに一致する行のみを抽出
     df = df[df["相対年度"].str.contains(term_regex)]
     # 項目名の列内の"、経営指標等"のを削除
     # 総資産額、経営指標等　→　総資産額
     df["項目名"] = df["項目名"].str.replace("、経営指標等", "")
-    #
+    # 項目名に重複があり、連結と個別がある場合、連結を優先して個別を削除
+    df.sort_values(by=["項目名", "連結・個別"], ascending=[True, False], inplace=True)
+    df.drop_duplicates(subset=["項目名", "相対年度"], keep="first", inplace=True)
     # # '項目名'が'所有株式数'から始まる行から、最初の'現金及び預金'の前の行までを削除
     # # 例：所有株式数（単元）－政府及び地方公共団体
     # start_index = df[df["項目名"].str.startswith("所有株式数", na=False)].index[0]
