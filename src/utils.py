@@ -29,10 +29,27 @@ def input_sec_code():
             print("入力が不正です。4桁の数字を入力してください。")
 
 
-# ３桁区切りの文字列に変換
 def convert_to_thousand_separated(number: float | str) -> str:
+    # 数値が文字列の場合、そのまま返す
     if isinstance(number, str):
         return number
-    elif isinstance(number, int):
-        return "{:,}".format(number)
+
+    # 数値をフォーマットして返す
+    if isinstance(number, (int, float)):
+        # 小数部分が0なら整数部のみ表示
+        if number == int(number):
+            return f"{int(number):,}"
+        else:
+            # 小数部分がある場合は小数点以下2桁まで表示
+            return f"{number:,.2f}"
+
     return "{:,.2f}".format(number)
+
+
+def convert_str_to_float(value: str) -> float:
+    if value == "－":
+        return 0
+    # △が頭についている場合、マイナスに変換
+    if "△" in str(value):
+        return -float(str(value).replace("△", ""))
+    return float(value)
