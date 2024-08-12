@@ -186,10 +186,7 @@ class FinancialDataProcessor:
                 self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "当期")[0],
             ),
         ]
-        noplats = [
-            x * y
-            for x, y in zip(financial_summary["operating_profits"], effective_tax_rates)
-        ]
+        noplats = [x * y for x, y in zip(financial_summary["operating_profits"], effective_tax_rates)]
 
         shareholders_equity = self._get_float_values_by_name("株主資本", "前期", "当期")
         invested_capitals = calculate_invested_capital(
@@ -203,7 +200,6 @@ class FinancialDataProcessor:
         acculumated_depreciation = self._get_float_values_by_name(
             "減価償却累計額、その他、有形固定資産", "前期", "当期"
         )
-
         net_trading_fixed_assets = [
             x - y for x, y in zip(tangible_fixed_assets, acculumated_depreciation)
         ]
@@ -232,46 +228,39 @@ class FinancialDataProcessor:
             "": "",
             "予測レシオ": "",
             "売上原価：売上原価/売上高": [
-                "-",
                 calculate_ratio(
                     financial_summary["cost_of_sales"][1],
                     financial_summary["revenues"][1],
                 ),
             ],
             "販売費及び一般管理費：販売費及び一般管理費/売上高": [
-                "-",
                 calculate_ratio(
                     self._get_float_values_by_name("販売費及び一般管理費", "当期")[0],
                     financial_summary["revenues"][1],
                 ),
             ],
             "減価償却費：減価償却費(t)/正味有形固定資産(t-1)": [
-                "-",
                 calculate_ratio(financial_summary["deprecations"][1], net_trading_fixed_assets[0]),
             ],
             "売掛金：売掛金/売上高": [
-                "-",
                 calculate_ratio(
                     net_working_capital["sum_of_sales_receivables"][1],
                     financial_summary["revenues"][1],
                 ),
             ],
             "棚卸資産：棚卸資産/売上原価": [
-                "-",
                 calculate_ratio(
                     net_working_capital["sum_of_inventories"][1],
                     financial_summary["cost_of_sales"][1],
                 ),
             ],
             "買掛金: 買掛金/売上高": [
-                "-",
                 calculate_ratio(
                     net_working_capital["sum_of_purchase_debt"][1],
                     financial_summary["revenues"][1],
                 ),
             ],
             "正味有形固定資産：正味有形固定資産/売上高": [
-                "-",
                 calculate_ratio(
                     net_trading_fixed_assets[1],
                     financial_summary["revenues"][1],
