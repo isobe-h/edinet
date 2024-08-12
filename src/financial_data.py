@@ -13,6 +13,7 @@ from utils import convert_str_to_float
 
 
 class FinancialDataProcessor:
+
     def __init__(self, df: pd.DataFrame, year: int):
         self.df = df
         self.year = int(year)
@@ -58,8 +59,7 @@ class FinancialDataProcessor:
     def _get_item_name(self, item_name, term=None) -> str:
         if term:
             values = self.df.loc[
-                (self.df["項目名"] == item_name)
-                & (self.df["相対年度"].str.contains(term)),
+                (self.df["項目名"] == item_name) & (self.df["相対年度"].str.contains(term)),
                 "項目名",
             ].values
             if len(values) > 0:
@@ -93,18 +93,14 @@ class FinancialDataProcessor:
             # 連結、個別、その他の順で値を検索
             for category in ["連結", "個別"]:
                 match = self.df.loc[
-                    query_base
-                    & query_term
-                    & (self.df["連結・個別"].str.contains(category)),
+                    query_base & query_term & (self.df["連結・個別"].str.contains(category)),
                     "値",
                 ]
                 if not match.empty:
                     return match.iloc[0]
             # 連結も個別も見つからなかった場合、その他の値を検索
             other_match = self.df.loc[
-                query_base
-                & query_term
-                & (~self.df["連結・個別"].str.contains("連結|個別", regex=True)),
+                query_base & query_term & (~self.df["連結・個別"].str.contains("連結|個別", regex=True)),
                 "値",
             ]
             if not other_match.empty:
@@ -128,9 +124,7 @@ class FinancialDataProcessor:
 
     def calculate_financial_metrics(self):
         # Include methods to calculate specific financial metrics
-        operating_profits = self._get_float_values_by_name(
-            "営業利益又は営業損失（△）", "前期", "当期"
-        )
+        operating_profits = self._get_float_values_by_name("営業利益又は営業損失（△）", "前期", "当期")
         nopat = [round(x * self.TAX_COEFFICIENT, 2) for x in operating_profits]
 
         return {"operating_profits": operating_profits, "nopat": nopat}
@@ -138,9 +132,7 @@ class FinancialDataProcessor:
     def get_report(self):
         consolidated_bs_title = "連結貸借対照表 [テキストブロック]"
         bs_title = "貸借対照表 [テキストブロック]"
-        consolidated_debt_detail_title = (
-            "借入金等明細表、連結財務諸表 [テキストブロック]"
-        )
+        consolidated_debt_detail_title = "借入金等明細表、連結財務諸表 [テキストブロック]"
         debt_detail_title = "借入金等明細表、財務諸表 [テキストブロック]"
         # 連結貸借対照表を探して、なければ単体貸借対照表を探す
         bs = self._get_first_value_by_name(consolidated_bs_title, "当期")
@@ -152,9 +144,7 @@ class FinancialDataProcessor:
 
         # 借入金等明細表、連結財務諸表 [テキストブロック]を探して、なければ単体財務諸表を探す
 
-        debt_detail = self._get_first_value_by_name(
-            consolidated_debt_detail_title, "当期"
-        )
+        debt_detail = self._get_first_value_by_name(consolidated_debt_detail_title, "当期")
         if debt_detail == "":
             debt_detail = self._get_first_value_by_name(debt_detail_title, "当期")
         debt_rate = calculate_weighted_average_cost(debt_detail)
@@ -163,12 +153,8 @@ class FinancialDataProcessor:
         net_working_capital = self.get_net_operating_capital()
         # money_unit = get_money_unit(bs)
         idle_assets = self.get_idle_assets()
-        number_of_stock = self._get_float_values_by_name(
-            "発行済株式総数（普通株式）", "当期末"
-        )[0]
-        number_of_company_stock = self._get_float_values_by_name(
-            "自己名義所有株式数（株）、自己株式等", "当期末"
-        )
+        number_of_stock = self._get_float_values_by_name("発行済株式総数（普通株式）", "当期末")[0]
+        number_of_company_stock = self._get_float_values_by_name("自己名義所有株式数（株）、自己株式等", "当期末")
         fcf = (
             financial_summary["nopat"][1]
             - financial_summary["capital_expenditure"][1]
@@ -177,32 +163,27 @@ class FinancialDataProcessor:
         )
 
         effective_tax_rates = [
-            calculate_ratio(
-                self._get_float_values_by_name("法人税等", "前期")[0],
-                self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "前期")[0],
-            ),
-            calculate_ratio(
-                self._get_float_values_by_name("法人税等", "当期")[0],
-                self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "当期")[0],
-            ),
+            calculate_ratio(x, y)
+            for x, y in zip(
+                self._get_float_values_by_name("法人税等", "前期", "当期"),
+                self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "前期", "当期"),
+            )
         ]
-        noplats = [x * y for x, y in zip(financial_summary["operating_profits"], effective_tax_rates)]
+        print(effective_tax_rates)
+        print(financial_summary["operating_profits"])
+        noplats = [x * (1 - y) for x, y in zip(financial_summary["operating_profits"], effective_tax_rates)]
 
         shareholders_equity = self._get_float_values_by_name("株主資本", "前期", "当期")
         invested_capitals = calculate_invested_capital(
             shareholders_equity, interest_bearing_debt["sum_of_interest_bearing_debt"]
         )
         bps = self._get_float_values_by_name("１株当たり純資産額", "前期", "当期末")
-        tangible_fixed_assets = self._get_float_values_by_name(
-            "有形固定資産", "前期", "当期"
-        )
+        tangible_fixed_assets = self._get_float_values_by_name("有形固定資産", "前期", "当期")
         # 累計減価償却額
         acculumated_depreciation = self._get_float_values_by_name(
             "減価償却累計額、その他、有形固定資産", "前期", "当期"
         )
-        net_trading_fixed_assets = [
-            x - y for x, y in zip(tangible_fixed_assets, acculumated_depreciation)
-        ]
+        net_trading_fixed_assets = [x - y for x, y in zip(tangible_fixed_assets, acculumated_depreciation)]
         return {
             # "単位": str(money_unit),
             "年": [self.year - 1, self.year],
@@ -266,14 +247,8 @@ class FinancialDataProcessor:
                     financial_summary["revenues"][1],
                 ),
             ],
+            "資本効率": "",
             "投下資本(有利子負債＋株主資本)": invested_capitals,
-            "営業利益率": [
-                calculate_ratio(x, y)
-                for x, y in zip(
-                    financial_summary["operating_profits"],
-                    financial_summary["revenues"],
-                )
-            ],
             "税引き後営業利益率(税率３０％)": [
                 calculate_ratio(x, y) for x, y in zip(financial_summary["nopat"], financial_summary["revenues"])
             ],
@@ -325,26 +300,17 @@ class FinancialDataProcessor:
             ]
         )
         inventories_item_names = set(
-            [
-                self._get_item_name(x, "当期")
-                for x in self.inventories_items
-                if self._get_item_name(x, "当期") != ""
-            ]
+            [self._get_item_name(x, "当期") for x in self.inventories_items if self._get_item_name(x, "当期") != ""]
         )
         purchase_debt_item_names = set(
-            [
-                self._get_item_name(x, "当期")
-                for x in self.purchase_debt_items
-                if self._get_item_name(x, "当期") != ""
-            ]
+            [self._get_item_name(x, "当期") for x in self.purchase_debt_items if self._get_item_name(x, "当期") != ""]
         )
         sales_receivables = {
             item_name: self._get_float_values_by_name(item_name, "前期", "当期")
             for item_name in sales_receivables_item_names
         }
         inventories = {
-            item_name: self._get_float_values_by_name(item_name, "前期", "当期")
-            for item_name in inventories_item_names
+            item_name: self._get_float_values_by_name(item_name, "前期", "当期") for item_name in inventories_item_names
         }
         purchase_debt = {
             item_name: self._get_float_values_by_name(item_name, "前期", "当期")
@@ -379,38 +345,25 @@ class FinancialDataProcessor:
         }
 
     def get_financial_summary(self) -> FinancialSummary:
-        operating_profits = self._get_float_values_by_name(
-            "営業利益又は営業損失（△）", "前期", "当期"
-        )
+        operating_profits = self._get_float_values_by_name("営業利益又は営業損失（△）", "前期", "当期")
         nopat = [round(float(x)) * self.TAX_COEFFICIENT for x in operating_profits]
         revenues = self._get_float_values_by_name("売上高", "前期", "当期")
         # "売上原価
-        cost_of_sales = [
-            x - y
-            for x, y in zip(
-                revenues, self._get_float_values_by_name("売上原価", "前期", "当期")
-            )
-        ]
+        cost_of_sales = [x - y for x, y in zip(revenues, self._get_float_values_by_name("売上原価", "前期", "当期"))]
         # 一般管理費及び販売費
         selling_general_and_administrative_expenses = self._get_float_values_by_name(
             "販売費及び一般管理費", "前期", "当期"
         )
         # 純利益
-        net_income = self._get_float_values_by_name(
-            "当期純利益又は当期純損失（△）", "前期", "当期"
-        )
+        net_income = self._get_float_values_by_name("当期純利益又は当期純損失（△）", "前期", "当期")
         # 潜在株式調整後１株当たり当期純利益
-        net_income_per_share_adjusted_for_potential_stock: list[float] = (
-            self._get_float_values_by_name(
-                "潜在株式調整後1株当たり当期純利益", "前期", "当期"
-            )
+        net_income_per_share_adjusted_for_potential_stock: list[float] = self._get_float_values_by_name(
+            "潜在株式調整後1株当たり当期純利益", "前期", "当期"
         )
         # 潜在株式がない場合
         if len(net_income_per_share_adjusted_for_potential_stock) == 0:
-            net_income_per_share_adjusted_for_potential_stock = (
-                self._get_float_values_by_name(
-                    "１株当たり当期純利益又は当期純損失（△）", "前期", "当期"
-                )
+            net_income_per_share_adjusted_for_potential_stock = self._get_float_values_by_name(
+                "１株当たり当期純利益又は当期純損失（△）", "前期", "当期"
             )
         # 総資産
         total_assets = self._get_float_values_by_name("総資産額", "前期", "当期")
@@ -423,6 +376,7 @@ class FinancialDataProcessor:
             "cost_of_sales": cost_of_sales,
             "selling_general_and_administrative_expenses": selling_general_and_administrative_expenses,
             "operating_profits": operating_profits,
+            "営業利益率": [calculate_ratio(x, y) for x, y in zip(operating_profits, revenues)],
             "operating_profit_growth_rate": [
                 "-",
                 calculate_growth_ratio(
@@ -434,9 +388,7 @@ class FinancialDataProcessor:
             "deprecations": self._get_float_values_by_name(
                 "減価償却費、営業活動によるキャッシュ・フロー", "前期", "当期"
             ),
-            "capital_expenditure": self._get_float_values_by_name(
-                "設備投資額、設備投資等の概要", "前期", "当期"
-            ),
+            "capital_expenditure": self._get_float_values_by_name("設備投資額、設備投資等の概要", "前期", "当期"),
             "net_income": net_income,
             "net_income_per_share_adjusted_for_potential_stock": net_income_per_share_adjusted_for_potential_stock,
             "total_assets": total_assets,
