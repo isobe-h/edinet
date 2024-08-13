@@ -8,11 +8,18 @@ def calculate_growth_ratio(previous: float, current: float) -> str:
     return str(round(result, 2)) + "%"
 
 
-def calculate_ratio(a: float, b: float, decimal=2) -> str:
+def calculate_str_ratio(a: float, b: float, decimal=2) -> str:
     if a == 0 or b == 0:
         return "0%"
     result = a / b * 100
     return str(round(result, decimal)) + "%"
+
+
+def calculate_ratio(a: float, b: float, decimal=2) -> float:
+    if a == 0 or b == 0:
+        return 0.0
+    result = a / b
+    return round(result, decimal)
 
 
 # 投下資本の計算
