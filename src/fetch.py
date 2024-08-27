@@ -1,4 +1,5 @@
 import os
+import time
 
 import requests
 
@@ -11,6 +12,7 @@ DOC_TYPE = 5  # CSV
 def fetch_annual_report_by_docid(doc_id: str):
     doc_parameter = {"type": DOC_TYPE, "Subscription-Key": API_KEY}
     response = requests.get(f"{BASE_URL}/{doc_id}", params=doc_parameter)
+    time.sleep(1)
     assert response.status_code == 200
     return response.content
 
@@ -26,4 +28,5 @@ def fetch_doc_list(date: str):
         "Subscription-Key": API_KEY,
     }
     result = requests.get(DOC_LIST_URL, doc_list_parameter)
+    time.sleep(1)
     return result.json()
