@@ -72,19 +72,13 @@ def export_df_to_csv(data, save_path):
                     sub_japanese_label = japanese_dict.get(subkey, subkey)
                     # 値がリストであることを確認し、それぞれの要素を列として追加
                     if isinstance(subvalues, list):
-                        writer.writerow(
-                            [japanese_label, sub_japanese_label] + subvalues
-                        )
+                        writer.writerow([japanese_label, sub_japanese_label] + subvalues)
                     else:
                         writer.writerow([japanese_label, sub_japanese_label, subvalues])
             else:
                 # リストや単一の値の場合、通常通りに処理
                 if isinstance(values, list) or isinstance(values, tuple):
-                    writer.writerow(
-                        [japanese_label]
-                        + list(map(convert_to_thousand_separated, values))
-                    )
+                    writer.writerow([japanese_label] + list(map(convert_to_thousand_separated, values)))
                 else:
-                    writer.writerow(
-                        [japanese_label, convert_to_thousand_separated(values)]
-                    )
+                    writer.writerow([japanese_label, convert_to_thousand_separated(values)])
+    print(f"Exported to {save_path}")
