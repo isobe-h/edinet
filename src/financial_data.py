@@ -162,19 +162,26 @@ class FinancialDataProcessor:
             - net_working_capital["fluctuation_of_net_operating_capitals"][1]
         )
 
-        # effective_tax_rates = [
-        #     calculate_ratio(x, y)
-        #     for x, y in zip(
-        #         self._get_float_values_by_name("法人税等", "前期", "当期"),
-        #         self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "前期", "当期"),
-        #     )
-        # ]
-        # noplats = [x * (1 - float(y)) for x, y in zip(financial_summary["operating_profits"], effective_tax_rates)]
+        effective_tax_rates = [
+            calculate_ratio(x, y)
+            for x, y in zip(
+                self._get_float_values_by_name("法人税等", "前期", "当期"),
+                self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "前期", "当期"),
+            )
+        ]
+        effective_tax_rates_str = [
+            calculate_str_ratio(x, y)
+            for x, y in zip(
+                self._get_float_values_by_name("法人税等", "前期", "当期"),
+                self._get_float_values_by_name("税引前当期純利益又は税引前当期純損失（△）", "前期", "当期"),
+            )
+        ]
+        noplats = [x * (1 - float(y)) for x, y in zip(financial_summary["operating_profits"], effective_tax_rates)]
 
         shareholders_equity = self._get_float_values_by_name("株主資本", "前期", "当期")
-        # invested_capitals = calculate_invested_capital(
-        #     shareholders_equity, interest_bearing_debt["sum_of_interest_bearing_debt"]
-        # )
+        invested_capitals = calculate_invested_capital(
+            shareholders_equity, interest_bearing_debt["sum_of_interest_bearing_debt"]
+        )
         # bps = self._get_float_values_by_name("１株当たり純資産額", "前期", "当期末")
         tangible_fixed_assets = self._get_float_values_by_name("有形固定資産", "前期", "当期")
         # 累計減価償却額
@@ -200,6 +207,24 @@ class FinancialDataProcessor:
             "FCF(NOPAT+減価償却費-設備投資±正味運転資本増減)": ["-", fcf],
             "現在価値に割り引いたFCF": "",
             "    ": "",
+            "資本効率": "",
+            "投下資本(有利子負債＋株主資本)": invested_capitals,
+            "税引き後営業利益率(税率３０％)": [
+                calculate_str_ratio(x, y) for x, y in zip(financial_summary["nopat"], financial_summary["revenues"])
+            ],
+            "投下資本回転率(税率３０％)": [
+                calculate_str_ratio(x, y) for x, y in zip(financial_summary["revenues"], invested_capitals)
+            ],
+            "ROIC(NOPAT/投下資本)": [
+                calculate_str_ratio(x, y) for x, y in zip(financial_summary["nopat"], invested_capitals)
+            ],
+            "実効税率": effective_tax_rates_str,
+            "実効税引き後営業利益率(営業利益x(1-実効税率))": [
+                calculate_str_ratio(x, y) for x, y in zip(noplats, financial_summary["revenues"])
+            ],
+            "NOPLAT(営業利益x(1-実効税率))": noplats,
+            "ROIC(NOPLAT/投下資本)": [calculate_str_ratio(x, y) for x, y in zip(noplats, invested_capitals)],
+            "         ": "",
             "予測レシオ": "",
             "売上原価：売上原価/売上高": [
                 calculate_str_ratio(
@@ -241,24 +266,6 @@ class FinancialDataProcessor:
                     financial_summary["revenues"][1],
                 ),
             ],
-            # " ": "",
-            # "資本効率": "",
-            # "投下資本(有利子負債＋株主資本)": invested_capitals,
-            # "税引き後営業利益率(税率３０％)": [
-            #     calculate_str_ratio(x, y) for x, y in zip(financial_summary["nopat"], financial_summary["revenues"])
-            # ],
-            # "税引き後営業利益率(営業利益x(1-実効税率))": [
-            #     calculate_str_ratio(x, y) for x, y in zip(noplats, financial_summary["revenues"])
-            # ],
-            # "投下資本回転率(税率３０％)": [
-            #     calculate_str_ratio(x, y) for x, y in zip(financial_summary["revenues"], invested_capitals)
-            # ],
-            # "実効税率": str(effective_tax_rates * 100) + "%",
-            # "NOPLAT(営業利益x(1-実効税率))": noplats,
-            # "ROIC(NOPLAT/投下資本)": [calculate_str_ratio(x, y) for x, y in zip(noplats, invested_capitals)],
-            # "ROIC(NOPAT/投下資本)": [
-            #     calculate_str_ratio(x, y) for x, y in zip(financial_summary["nopat"], invested_capitals)
-            # ],
             # "有形固定資産回転率": [
             #     calculate_str_ratio(x, y) for x, y in zip(financial_summary["revenues"], tangible_fixed_assets)
             # ],
@@ -313,8 +320,8 @@ class FinancialDataProcessor:
         }
         sum_of_sales_receivables = [sum(values[i] for values in sales_receivables.values()) for i in range(2)]
         sum_of_inventories = [sum(values[i] for values in inventories.values()) for i in range(2)]
-        sum_of_purchase_debt = [sum(values[i] for values in purchase_debt.values()) for i in range(2)]
-        sums = [x + y - z for x, y, z in zip(sum_of_inventories, sum_of_sales_receivables, sum_of_purchase_debt)]
+        sum_of_purchase_debt = [sum(values[i] for values in purchase_debt.values()) * -1 for i in range(2)]
+        sums = [x + y + z for x, y, z in zip(sum_of_inventories, sum_of_sales_receivables, sum_of_purchase_debt)]
         net_operating_capital: NetOperatingCapital = {
             "sum_of_sales_receivables": sum_of_sales_receivables,
             "sum_of_inventories": sum_of_inventories,
@@ -353,6 +360,9 @@ class FinancialDataProcessor:
         #     )
         # # 総資産
         # total_assets = self._get_float_values_by_name("総資産額", "前期", "当期")
+        # 売上総利益を定義
+        gross_profit = [x - y for x, y in zip(revenues, cost_of_sales)]
+
         return {
             "revenues": revenues,
             "revenue_growth_rate": [
@@ -360,16 +370,18 @@ class FinancialDataProcessor:
                 calculate_growth_ratio(revenues[0], revenues[1]),
             ],
             "cost_of_sales": cost_of_sales,
+            "売上総利益": gross_profit,
+            "売上総利益率": [calculate_str_ratio(x, y) for x, y in zip(gross_profit, revenues)],
             "selling_general_and_administrative_expenses": selling_general_and_administrative_expenses,
             "operating_profits": operating_profits,
-            # "営業利益率": [calculate_str_ratio(x, y) for x, y in zip(operating_profits, revenues)],
-            # "operating_profit_growth_rate": [
-            #     "-",
-            #     calculate_growth_ratio(
-            #         operating_profits[0],
-            #         operating_profits[1],
-            #     ),
-            # ],
+            "営業利益率": [calculate_str_ratio(x, y) for x, y in zip(operating_profits, revenues)],
+            "operating_profit_growth_rate": [
+                "-",
+                calculate_growth_ratio(
+                    operating_profits[0],
+                    operating_profits[1],
+                ),
+            ],
             "nopat": nopat,
             "deprecations": self._get_float_values_by_name(
                 "減価償却費、営業活動によるキャッシュ・フロー", "前期", "当期"
