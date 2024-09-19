@@ -27,15 +27,11 @@ def calculate_ratio(a: float, b: float, decimal=2) -> float:
 def calculate_invested_capital(
     sum_of_shareholders_equities: list[float],
     sum_of_interest_bearing_debts: list[float],
-) -> list[float]:
+) -> float:
     assert len(sum_of_shareholders_equities) == len(sum_of_interest_bearing_debts)
-    return [
-        x / 2
-        for x in map(
-            lambda values: sum(values),
-            zip(sum_of_shareholders_equities, sum_of_interest_bearing_debts),
-        )
-    ]
+    last_invested_capital = sum_of_interest_bearing_debts[0] + sum_of_shareholders_equities[0]
+    current_invested_capital = sum_of_interest_bearing_debts[1] + sum_of_shareholders_equities[1]
+    return (last_invested_capital + current_invested_capital) / 2
 
 
 def calculate_weighted_average_cost(text_data):
