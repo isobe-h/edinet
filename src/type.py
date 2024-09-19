@@ -85,7 +85,7 @@ class ReportType(Enum):
 japanese_dict = {
     "revenues": "売上高",
     "operating_profits": "営業利益",
-    "nopat": "NOPAT（税率30%）",
+    "nopat": "NOPAT",
     "noplat": "NOPLAT(実行税引後営業利益)",
     "deprecations": "減価償却費",
     "capital_expenditure": "設備投資額",
