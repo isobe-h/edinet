@@ -7,10 +7,10 @@ term_regex = r"当期末?|前期末?"
 
 def remove_unnecessary_columns(df) -> pd.DataFrame:
     # dfから要素ID、コンテキストID,ユニットID列を削除
-    # 相対年度の列が、'当期'　以外の行は削除
+    # 相対年度の列が、項目が空の行は削除
     df = df[["項目名", "相対年度", "連結・個別", "値"]].dropna(subset=["項目名"])
-    # 相対年度の列が、terms_regexに一致する行のみを抽出
-    df = df[df["相対年度"].str.contains(term_regex)]
+    # 相対年度の列が、terms_regexに一致する行のみを抽出、ただし、項目名が”設備投資等の概要 [テキストブロック]”は残す
+    df = df[df["相対年度"].str.contains(term_regex) | (df["項目名"] == "設備投資等の概要 [テキストブロック]")]
     # 項目名の列内の"、経営指標等"のを削除
     # 総資産額、経営指標等　→　総資産額
     df["項目名"] = df["項目名"].str.replace("、経営指標等", "")
